@@ -19,7 +19,7 @@
         #main-container { display: flex; flex: 1; position: relative; overflow: hidden; }
         #map { flex: 1; height: 100%; z-index: 1; transition: width 0.3s ease; border-right: 1px solid #ddd; }
         
-        /* Sidebar */
+        /* Sidebar (Desktop) */
         #story-panel { 
             width: 420px; 
             min-width: 420px; 
@@ -34,28 +34,29 @@
         
         .sidebar-hidden { margin-right: -420px; }
 
-        /* ปุ่มซ่อน/แสดง Sidebar */
+        /* ปุ่มซ่อน/แสดง Sidebar (Desktop) */
         .toggle-sidebar-btn {
             position: absolute;
-            left: -25px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: white;
-            border: 1px solid #ddd;
-            border-right: none;
-            width: 25px;
-            height: 50px;
+            left: -35px;
+            top: 20px;
+            background: var(--wellness);
+            width: 35px;
+            height: 60px;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            border-radius: 8px 0 0 8px;
-            box-shadow: -2px 0 5px rgba(0,0,0,0.1);
+            border-radius: 10px 0 0 10px;
+            box-shadow: -4px 0 10px rgba(0,0,0,0.15);
             z-index: 1000;
-            color: #555;
+            color: white;
+            font-size: 18px;
             transition: 0.3s;
         }
-        .sidebar-hidden .toggle-sidebar-btn { left: -25px; }
+        .sidebar-hidden .toggle-sidebar-btn { left: -35px; }
+
+        .toggle-icon { transition: transform 0.4s ease; }
+        .sidebar-hidden .toggle-icon { transform: rotate(180deg); }
 
         .panel-content { padding: 15px; overflow-y: auto; flex: 1; }
 
@@ -99,10 +100,8 @@
         .user-dot { width: 16px; height: 16px; background: #3498db; border: 3px solid white; border-radius: 50%; box-shadow: 0 0 8px rgba(0,0,0,0.6); z-index: 2; position: relative; }
         .user-heading { width: 50px; height: 50px; position: absolute; z-index: 1; top: calc(50% - 25px); left: calc(50% - 25px); background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 50"><path d="M25 5 L37 25 L25 21 L13 25 Z" fill="rgba(52,152,219,0.5)"/></svg>'); background-size: cover; transform-origin: center; transition: transform 0.1s ease-out; display: none; }
 
-        /* Dialogs */
-        .dialog-overlay { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: white; padding: 20px; border-radius: 15px; z-index: 9999; display: none; width: 320px; box-shadow: 0 8px 25px rgba(0,0,0,0.3); text-align: center; }
-        #route-switch-dialog { border-top: 5px solid var(--warning); }
-        
+        /* Dialog แจ้งเตือนสลับเส้นทาง */
+        .dialog-overlay { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: white; padding: 20px; border-radius: 15px; z-index: 9999; display: none; width: 320px; box-shadow: 0 8px 25px rgba(0,0,0,0.3); text-align: center; border-top: 5px solid var(--warning); }
         .btn-switch { background: var(--warning); color: white; border: none; padding: 12px; border-radius: 25px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 15px; font-size: 14px; }
         .btn-cancel { background: none; color: gray; border: none; padding: 10px; cursor: pointer; width: 100%; margin-top: 5px; font-size: 14px; text-decoration: underline; }
 
@@ -110,12 +109,15 @@
         /* RESPONSIVE DESIGN สำหรับโทรศัพท์มือถือ */
         /* ======================================================== */
         @media (max-width: 768px) {
-            header { flex-direction: column; align-items: stretch; gap: 10px; padding: 12px 15px; }
+            header { flex-direction: column; align-items: stretch; gap: 10px; padding: 10px 15px; }
             .header-controls { justify-content: space-between; width: 100%; }
-            #txt-title { text-align: center; margin-bottom: 5px; }
+            #txt-title { text-align: center; margin-bottom: 2px; }
+            
             #main-container { flex-direction: column; position: relative; }
+            
             #map { flex: 1; min-height: 45vh; border-right: none; z-index: 1; }
             
+            /* แถบข้อมูลลอยทับอยู่ด้านล่าง */
             #story-panel { 
                 position: absolute; 
                 bottom: 0; 
@@ -138,7 +140,8 @@
                 height: 35px; 
                 border-radius: 20px 20px 0 0; 
                 background: white; 
-                border: none; 
+                border: 2px solid #ddd;
+                border-bottom: none; 
                 box-shadow: 0 -4px 10px rgba(0,0,0,0.1); 
                 color: var(--wellness); 
                 font-size: 22px; 
@@ -148,8 +151,9 @@
             #toggle-icon.fa-chevron-right { transform: rotate(90deg); }
             #toggle-icon.fa-chevron-left { transform: rotate(90deg); }
 
+            /* ย้ายปุ่มแผนที่หลบไปซ้ายบน เรียงต่อจากปุ่ม Zoom ของ Leaflet */
             .map-controls-left { top: 90px; bottom: auto; left: 10px; }
-            .map-btn { width: 40px; height: 40px; font-size: 18px; background: rgba(255,255,255,0.9); }
+            .map-btn { width: 34px; height: 34px; font-size: 16px; background: rgba(255,255,255,0.9); }
             
             .card img { height: 110px; }
             .dialog-overlay { width: 85%; padding: 15px; }
@@ -201,7 +205,7 @@
 
     <aside id="story-panel">
         <div class="toggle-sidebar-btn" onclick="toggleSidebar()">
-            <i id="toggle-icon" class="fa-solid fa-chevron-right"></i>
+            <i id="toggle-icon" class="fa-solid fa-chevron-right toggle-icon"></i>
         </div>
 
         <div class="panel-content">
@@ -308,54 +312,54 @@
             { lat: 12.52824, lng: 102.09438, shade: 0, img: "https://picsum.photos/seed/w1/400/200", th: { t: "1. ศูนย์บริการนักท่องเที่ยว", d: "จุดเริ่มต้นฟื้นฟู สูดลมหายใจลึกๆ" }, en: { t: "1. Visitor Center", d: "Start your journey here." } }
         ],
         faith1: [
-            { id: 1, lat: 12.52850, lng: 102.09422, dist: 1350, shade: 50, img: "https://picsum.photos/seed/f9/400/200", th:{t:"9. ตลาดชุมชน/ทางออก", d:"นำพากุศลกลับบ้าน"}, en:{t:"9. Market / Exit", d:"Take blessings home."} },
-            { id: 2, lat: 12.52919, lng: 102.09371, dist: 1350, shade: 50, img: "https://picsum.photos/seed/f9/400/200", th:{t:"9. ตลาดชุมชน/ทางออก", d:"นำพากุศลกลับบ้าน"}, en:{t:"9. Market / Exit", d:"Take blessings home."} },
-            { id: 3, lat: 12.52734, lng: 102.09310, dist: 1350, shade: 50, img: "https://picsum.photos/seed/f9/400/200", th:{t:"9. ตลาดชุมชน/ทางออก", d:"นำพากุศลกลับบ้าน"}, en:{t:"9. Market / Exit", d:"Take blessings home."} },
-            { id: 4, lat: 12.52721, lng: 102.09319, dist: 1350, shade: 50, img: "https://picsum.photos/seed/f9/400/200", th:{t:"9. ตลาดชุมชน/ทางออก", d:"นำพากุศลกลับบ้าน"}, en:{t:"9. Market / Exit", d:"Take blessings home."} },
-            { id: 5, lat: 12.52611, lng: 102.09279, dist: 1350, shade: 50, img: "https://picsum.photos/seed/f9/400/200", th:{t:"9. ตลาดชุมชน/ทางออก", d:"นำพากุศลกลับบ้าน"}, en:{t:"9. Market / Exit", d:"Take blessings home."} }
+            { id: 1, lat: 12.52850, lng: 102.09422, shade: 50, img: "https://picsum.photos/seed/f9/400/200", th:{t:"9. ตลาดชุมชน/ทางออก", d:"นำพากุศลกลับบ้าน"}, en:{t:"9. Market / Exit", d:"Take blessings home."} },
+            { id: 2, lat: 12.52919, lng: 102.09371, shade: 50, img: "https://picsum.photos/seed/f9/400/200", th:{t:"9. ตลาดชุมชน/ทางออก", d:"นำพากุศลกลับบ้าน"}, en:{t:"9. Market / Exit", d:"Take blessings home."} },
+            { id: 3, lat: 12.52734, lng: 102.09310, shade: 50, img: "https://picsum.photos/seed/f9/400/200", th:{t:"9. ตลาดชุมชน/ทางออก", d:"นำพากุศลกลับบ้าน"}, en:{t:"9. Market / Exit", d:"Take blessings home."} },
+            { id: 4, lat: 12.52721, lng: 102.09319, shade: 50, img: "https://picsum.photos/seed/f9/400/200", th:{t:"9. ตลาดชุมชน/ทางออก", d:"นำพากุศลกลับบ้าน"}, en:{t:"9. Market / Exit", d:"Take blessings home."} },
+            { id: 5, lat: 12.52611, lng: 102.09279, shade: 50, img: "https://picsum.photos/seed/f9/400/200", th:{t:"9. ตลาดชุมชน/ทางออก", d:"นำพากุศลกลับบ้าน"}, en:{t:"9. Market / Exit", d:"Take blessings home."} }
         ],
         faith2: [
-            { id: 69, lat: 12.52947, lng: 102.09460, dist: 1350, shade: 50, img: "https://picsum.photos/seed/f9/400/200", th:{t:"9. ตลาดชุมชน/ทางออก", d:"นำพากุศลกลับบ้าน"}, en:{t:"9. Market / Exit", d:"Take blessings home."} },
-            { id: 17, lat: 12.52955, lng: 102.09474, dist: 1350, shade: 50, img: "https://picsum.photos/seed/f9/400/200", th:{t:"9. ตลาดชุมชน/ทางออก", d:"นำพากุศลกลับบ้าน"}, en:{t:"9. Market / Exit", d:"Take blessings home."} },
-            { id: 19, lat: 12.52944, lng: 102.09459, dist: 1350, shade: 50, img: "https://picsum.photos/seed/f9/400/200", th:{t:"9. ตลาดชุมชน/ทางออก", d:"นำพากุศลกลับบ้าน"}, en:{t:"9. Market / Exit", d:"Take blessings home."} },
-            { id: 1, lat: 12.52910, lng: 102.09487, dist: 0, shade: 80, img: "https://picsum.photos/seed/f1/400/200", th:{t:"1. ศูนย์บริการนักท่องเที่ยว", d:"จุดเริ่มต้นแสวงบุญ"}, en:{t:"1. Visitor Center", d:"Start your faith journey."} },
-            { id: 11, lat: 12.52935, lng: 102.09539, dist: 20, shade: 80, img: "https://picsum.photos/seed/f2/400/200", th:{t:"2. ศาลชุมชน", d:"ไหว้เจ้าป่าขอบคุณธรรมชาติ"}, en:{t:"2. Community Shrine", d:"Pay respect to forest spirit."} },
-            { id: 3, lat: 12.52936, lng: 102.09590, dist: 350, shade: 95, img: "https://picsum.photos/seed/f3/400/200", th:{t:"3. อุโมงค์โกงกาง (จุดเชื่อม)", d:"ทางผ่านสู่ความสงบ"}, en:{t:"3. Mangrove Tunnel", d:"Gateway to serenity."} },
-            { id: 12, lat: 12.52913, lng: 102.09638, dist: 450, shade: 95, img: "https://picsum.photos/seed/f4/400/200", th:{t:"4. ต้นไม้ใหญ่ศักดิ์สิทธิ์", d:"จุดรับพลังงานบวกจากรุกขชาติ"}, en:{t:"4. Sacred Tree", d:"Absorb positive energy."} },
-            { id: 22, lat: 12.52838, lng: 102.09679, dist: 450, shade: 95, img: "https://picsum.photos/seed/f4/400/200", th:{t:"4. ต้นไม้ใหญ่ศักดิ์สิทธิ์", d:"จุดรับพลังงานบวกจากรุกขชาติ"}, en:{t:"4. Sacred Tree", d:"Absorb positive energy."} },
-            { id: 23, lat: 12.52772, lng: 102.09665, dist: 450, shade: 95, img: "https://picsum.photos/seed/f4/400/200", th:{t:"4. ต้นไม้ใหญ่ศักดิ์สิทธิ์", d:"จุดรับพลังงานบวกจากรุกขชาติ"}, en:{t:"4. Sacred Tree", d:"Absorb positive energy."} },
-            { id: 24, lat: 12.52733, lng: 102.09726, dist: 450, shade: 95, img: "https://picsum.photos/seed/f4/400/200", th:{t:"4. ต้นไม้ใหญ่ศักดิ์สิทธิ์", d:"จุดรับพลังงานบวกจากรุกขชาติ"}, en:{t:"4. Sacred Tree", d:"Absorb positive energy."} },
-            { id: 25, lat: 12.52642, lng: 102.09744, dist: 450, shade: 95, img: "https://picsum.photos/seed/f4/400/200", th:{t:"4. ต้นไม้ใหญ่ศักดิ์สิทธิ์", d:"จุดรับพลังงานบวกจากรุกขชาติ"}, en:{t:"4. Sacred Tree", d:"Absorb positive energy."} },
-            { id: 26, lat: 12.52599, lng: 102.09783, dist: 450, shade: 95, img: "https://picsum.photos/seed/f4/400/200", th:{t:"4. ต้นไม้ใหญ่ศักดิ์สิทธิ์", d:"จุดรับพลังงานบวกจากรุกขชาติ"}, en:{t:"4. Sacred Tree", d:"Absorb positive energy."} },
-            { id: 16, lat: 12.52577, lng: 102.09866, dist: 1150, shade: 60, img: "https://picsum.photos/seed/f8/400/200", th:{t:"8. ลานหินมงคล", d:"จุดรวบรวมสมาธิขั้นสุดท้าย"}, en:{t:"8. Auspicious Stone", d:"Final meditation spot."} },
-            { id: 18, lat: 12.52563, lng: 102.09866, dist: 1350, shade: 50, img: "https://picsum.photos/seed/f9/400/200", th:{t:"9. ตลาดชุมชน/ทางออก", d:"นำพากุศลกลับบ้าน"}, en:{t:"9. Market / Exit", d:"Take blessings home."} },
-            { id: 20, lat: 12.52530, lng: 102.09808, dist: 1350, shade: 50, img: "https://picsum.photos/seed/f9/400/200", th:{t:"9. ตลาดชุมชน/ทางออก", d:"นำพากุศลกลับบ้าน"}, en:{t:"9. Market / Exit", d:"Take blessings home."} },
-            { id: 99, lat: 12.52546, lng: 102.09797, dist: 1350, shade: 50, img: "https://picsum.photos/seed/f9/400/200", th:{t:"9. ตลาดชุมชน/ทางออก", d:"นำพากุศลกลับบ้าน"}, en:{t:"9. Market / Exit", d:"Take blessings home."} },
-            { id: 96, lat: 12.52568, lng: 102.09762, dist: 1350, shade: 50, img: "https://picsum.photos/seed/f9/400/200", th:{t:"9. ตลาดชุมชน/ทางออก", d:"นำพากุศลกลับบ้าน"}, en:{t:"9. Market / Exit", d:"Take blessings home."} },
-            { id: 97, lat: 12.52624, lng: 102.09711, dist: 1350, shade: 50, img: "https://picsum.photos/seed/f9/400/200", th:{t:"9. ตลาดชุมชน/ทางออก", d:"นำพากุศลกลับบ้าน"}, en:{t:"9. Market / Exit", d:"Take blessings home."} },
-            { id: 98, lat: 12.52708, lng: 102.09696, dist: 1350, shade: 50, img: "https://picsum.photos/seed/f9/400/200", th:{t:"9. ตลาดชุมชน/ทางออก", d:"นำพากุศลกลับบ้าน"}, en:{t:"9. Market / Exit", d:"Take blessings home."} },
-            { id: 95, lat: 12.52727, lng: 102.09685, dist: 1350, shade: 50, img: "https://picsum.photos/seed/f9/400/200", th:{t:"9. ตลาดชุมชน/ทางออก", d:"นำพากุศลกลับบ้าน"}, en:{t:"9. Market / Exit", d:"Take blessings home."} },
-            { id: 89, lat: 12.52731, lng: 102.09641, dist: 450, shade: 95, img: "https://picsum.photos/seed/f4/400/200", th:{t:"4. ต้นไม้ใหญ่ศักดิ์สิทธิ์", d:"จุดรับพลังงานบวกจากรุกขชาติ"}, en:{t:"4. Sacred Tree", d:"Absorb positive energy."} },
-            { id: 94, lat: 12.52719, lng: 102.09589, dist: 1350, shade: 50, img: "https://picsum.photos/seed/f9/400/200", th:{t:"9. ตลาดชุมชน/ทางออก", d:"นำพากุศลกลับบ้าน"}, en:{t:"9. Market / Exit", d:"Take blessings home."} },
-            { id: 93, lat: 12.52821, lng: 102.09645, dist: 1350, shade: 50, img: "https://picsum.photos/seed/f9/400/200", th:{t:"9. ตลาดชุมชน/ทางออก", d:"นำพากุศลกลับบ้าน"}, en:{t:"9. Market / Exit", d:"Take blessings home."} },
-            { id: 92, lat: 12.52861, lng: 102.09630, dist: 1350, shade: 50, img: "https://picsum.photos/seed/f9/400/200", th:{t:"9. ตลาดชุมชน/ทางออก", d:"นำพากุศลกลับบ้าน"}, en:{t:"9. Market / Exit", d:"Take blessings home."} },
-            { id: 91, lat: 12.52889, lng: 102.09581, dist: 1350, shade: 50, img: "https://picsum.photos/seed/f9/400/200", th:{t:"9. ตลาดชุมชน/ทางออก", d:"นำพากุศลกลับบ้าน"}, en:{t:"9. Market / Exit", d:"Take blessings home."} },
-            { id: 29, lat: 12.52844, lng: 102.09576, dist: 1350, shade: 50, img: "https://picsum.photos/seed/f9/400/200", th:{t:"9. ตลาดชุมชน/ทางออก", d:"นำพากุศลกลับบ้าน"}, en:{t:"9. Market / Exit", d:"Take blessings home."} },
-            { id: 39, lat: 12.52826, lng: 102.09509, dist: 1350, shade: 50, img: "https://picsum.photos/seed/f9/400/200", th:{t:"9. ตลาดชุมชน/ทางออก", d:"นำพากุศลกลับบ้าน"}, en:{t:"9. Market / Exit", d:"Take blessings home."} },
-            { id: 49, lat: 12.52859, lng: 102.09477, dist: 1350, shade: 50, img: "https://picsum.photos/seed/f9/400/200", th:{t:"9. ตลาดชุมชน/ทางออก", d:"นำพากุศลกลับบ้าน"}, en:{t:"9. Market / Exit", d:"Take blessings home."} },
-            { id: 59, lat: 12.52910, lng: 102.09487, dist: 1350, shade: 50, img: "https://picsum.photos/seed/f9/400/200", th:{t:"9. ตลาดชุมชน/ทางออก", d:"นำพากุศลกลับบ้าน"}, en:{t:"9. Market / Exit", d:"Take blessings home."} }
+            { id: 69, lat: 12.52947, lng: 102.09460, shade: 50, img: "https://picsum.photos/seed/f9/400/200", th:{t:"9. ตลาดชุมชน/ทางออก", d:"นำพากุศลกลับบ้าน"}, en:{t:"9. Market / Exit", d:"Take blessings home."} },
+            { id: 17, lat: 12.52955, lng: 102.09474, shade: 50, img: "https://picsum.photos/seed/f9/400/200", th:{t:"9. ตลาดชุมชน/ทางออก", d:"นำพากุศลกลับบ้าน"}, en:{t:"9. Market / Exit", d:"Take blessings home."} },
+            { id: 19, lat: 12.52944, lng: 102.09459, shade: 50, img: "https://picsum.photos/seed/f9/400/200", th:{t:"9. ตลาดชุมชน/ทางออก", d:"นำพากุศลกลับบ้าน"}, en:{t:"9. Market / Exit", d:"Take blessings home."} },
+            { id: 1, lat: 12.52910, lng: 102.09487, shade: 80, img: "https://picsum.photos/seed/f1/400/200", th:{t:"1. ศูนย์บริการนักท่องเที่ยว", d:"จุดเริ่มต้นแสวงบุญ"}, en:{t:"1. Visitor Center", d:"Start your faith journey."} },
+            { id: 11, lat: 12.52935, lng: 102.09539, shade: 80, img: "https://picsum.photos/seed/f2/400/200", th:{t:"2. ศาลชุมชน", d:"ไหว้เจ้าป่าขอบคุณธรรมชาติ"}, en:{t:"2. Community Shrine", d:"Pay respect to forest spirit."} },
+            { id: 3, lat: 12.52936, lng: 102.09590, shade: 95, img: "https://picsum.photos/seed/f3/400/200", th:{t:"3. อุโมงค์โกงกาง (จุดเชื่อม)", d:"ทางผ่านสู่ความสงบ"}, en:{t:"3. Mangrove Tunnel", d:"Gateway to serenity."} },
+            { id: 12, lat: 12.52913, lng: 102.09638, shade: 95, img: "https://picsum.photos/seed/f4/400/200", th:{t:"4. ต้นไม้ใหญ่ศักดิ์สิทธิ์", d:"จุดรับพลังงานบวกจากรุกขชาติ"}, en:{t:"4. Sacred Tree", d:"Absorb positive energy."} },
+            { id: 22, lat: 12.52838, lng: 102.09679, shade: 95, img: "https://picsum.photos/seed/f4/400/200", th:{t:"4. ต้นไม้ใหญ่ศักดิ์สิทธิ์", d:"จุดรับพลังงานบวกจากรุกขชาติ"}, en:{t:"4. Sacred Tree", d:"Absorb positive energy."} },
+            { id: 23, lat: 12.52772, lng: 102.09665, shade: 95, img: "https://picsum.photos/seed/f4/400/200", th:{t:"4. ต้นไม้ใหญ่ศักดิ์สิทธิ์", d:"จุดรับพลังงานบวกจากรุกขชาติ"}, en:{t:"4. Sacred Tree", d:"Absorb positive energy."} },
+            { id: 24, lat: 12.52733, lng: 102.09726, shade: 95, img: "https://picsum.photos/seed/f4/400/200", th:{t:"4. ต้นไม้ใหญ่ศักดิ์สิทธิ์", d:"จุดรับพลังงานบวกจากรุกขชาติ"}, en:{t:"4. Sacred Tree", d:"Absorb positive energy."} },
+            { id: 25, lat: 12.52642, lng: 102.09744, shade: 95, img: "https://picsum.photos/seed/f4/400/200", th:{t:"4. ต้นไม้ใหญ่ศักดิ์สิทธิ์", d:"จุดรับพลังงานบวกจากรุกขชาติ"}, en:{t:"4. Sacred Tree", d:"Absorb positive energy."} },
+            { id: 26, lat: 12.52599, lng: 102.09783, shade: 95, img: "https://picsum.photos/seed/f4/400/200", th:{t:"4. ต้นไม้ใหญ่ศักดิ์สิทธิ์", d:"จุดรับพลังงานบวกจากรุกขชาติ"}, en:{t:"4. Sacred Tree", d:"Absorb positive energy."} },
+            { id: 16, lat: 12.52577, lng: 102.09866, shade: 60, img: "https://picsum.photos/seed/f8/400/200", th:{t:"8. ลานหินมงคล", d:"จุดรวบรวมสมาธิขั้นสุดท้าย"}, en:{t:"8. Auspicious Stone", d:"Final meditation spot."} },
+            { id: 18, lat: 12.52563, lng: 102.09866, shade: 50, img: "https://picsum.photos/seed/f9/400/200", th:{t:"9. ตลาดชุมชน/ทางออก", d:"นำพากุศลกลับบ้าน"}, en:{t:"9. Market / Exit", d:"Take blessings home."} },
+            { id: 20, lat: 12.52530, lng: 102.09808, shade: 50, img: "https://picsum.photos/seed/f9/400/200", th:{t:"9. ตลาดชุมชน/ทางออก", d:"นำพากุศลกลับบ้าน"}, en:{t:"9. Market / Exit", d:"Take blessings home."} },
+            { id: 99, lat: 12.52546, lng: 102.09797, shade: 50, img: "https://picsum.photos/seed/f9/400/200", th:{t:"9. ตลาดชุมชน/ทางออก", d:"นำพากุศลกลับบ้าน"}, en:{t:"9. Market / Exit", d:"Take blessings home."} },
+            { id: 96, lat: 12.52568, lng: 102.09762, shade: 50, img: "https://picsum.photos/seed/f9/400/200", th:{t:"9. ตลาดชุมชน/ทางออก", d:"นำพากุศลกลับบ้าน"}, en:{t:"9. Market / Exit", d:"Take blessings home."} },
+            { id: 97, lat: 12.52624, lng: 102.09711, shade: 50, img: "https://picsum.photos/seed/f9/400/200", th:{t:"9. ตลาดชุมชน/ทางออก", d:"นำพากุศลกลับบ้าน"}, en:{t:"9. Market / Exit", d:"Take blessings home."} },
+            { id: 98, lat: 12.52708, lng: 102.09696, shade: 50, img: "https://picsum.photos/seed/f9/400/200", th:{t:"9. ตลาดชุมชน/ทางออก", d:"นำพากุศลกลับบ้าน"}, en:{t:"9. Market / Exit", d:"Take blessings home."} },
+            { id: 95, lat: 12.52727, lng: 102.09685, shade: 50, img: "https://picsum.photos/seed/f9/400/200", th:{t:"9. ตลาดชุมชน/ทางออก", d:"นำพากุศลกลับบ้าน"}, en:{t:"9. Market / Exit", d:"Take blessings home."} },
+            { id: 89, lat: 12.52731, lng: 102.09641, shade: 95, img: "https://picsum.photos/seed/f4/400/200", th:{t:"4. ต้นไม้ใหญ่ศักดิ์สิทธิ์", d:"จุดรับพลังงานบวกจากรุกขชาติ"}, en:{t:"4. Sacred Tree", d:"Absorb positive energy."} },
+            { id: 94, lat: 12.52719, lng: 102.09589, shade: 50, img: "https://picsum.photos/seed/f9/400/200", th:{t:"9. ตลาดชุมชน/ทางออก", d:"นำพากุศลกลับบ้าน"}, en:{t:"9. Market / Exit", d:"Take blessings home."} },
+            { id: 93, lat: 12.52821, lng: 102.09645, shade: 50, img: "https://picsum.photos/seed/f9/400/200", th:{t:"9. ตลาดชุมชน/ทางออก", d:"นำพากุศลกลับบ้าน"}, en:{t:"9. Market / Exit", d:"Take blessings home."} },
+            { id: 92, lat: 12.52861, lng: 102.09630, shade: 50, img: "https://picsum.photos/seed/f9/400/200", th:{t:"9. ตลาดชุมชน/ทางออก", d:"นำพากุศลกลับบ้าน"}, en:{t:"9. Market / Exit", d:"Take blessings home."} },
+            { id: 91, lat: 12.52889, lng: 102.09581, shade: 50, img: "https://picsum.photos/seed/f9/400/200", th:{t:"9. ตลาดชุมชน/ทางออก", d:"นำพากุศลกลับบ้าน"}, en:{t:"9. Market / Exit", d:"Take blessings home."} },
+            { id: 29, lat: 12.52844, lng: 102.09576, shade: 50, img: "https://picsum.photos/seed/f9/400/200", th:{t:"9. ตลาดชุมชน/ทางออก", d:"นำพากุศลกลับบ้าน"}, en:{t:"9. Market / Exit", d:"Take blessings home."} },
+            { id: 39, lat: 12.52826, lng: 102.09509, shade: 50, img: "https://picsum.photos/seed/f9/400/200", th:{t:"9. ตลาดชุมชน/ทางออก", d:"นำพากุศลกลับบ้าน"}, en:{t:"9. Market / Exit", d:"Take blessings home."} },
+            { id: 49, lat: 12.52859, lng: 102.09477, shade: 50, img: "https://picsum.photos/seed/f9/400/200", th:{t:"9. ตลาดชุมชน/ทางออก", d:"นำพากุศลกลับบ้าน"}, en:{t:"9. Market / Exit", d:"Take blessings home."} },
+            { id: 59, lat: 12.52910, lng: 102.09487, shade: 50, img: "https://picsum.photos/seed/f9/400/200", th:{t:"9. ตลาดชุมชน/ทางออก", d:"นำพากุศลกลับบ้าน"}, en:{t:"9. Market / Exit", d:"Take blessings home."} }
         ],
         viewpoints: [
-            { id: 101, pLat: 12.52999, pLng: 102.09479, lat: 12.5305, lng: 102.0950, dist: 50, shade: 100, th:{t:"จุดชมวิว 1: ทุ่งชายเลน", d:"แยกจากสถานี 1 (50ม.)"}, img: "https://picsum.photos/seed/v1/400/200" },
-            { id: 102, pLat: 12.52999, pLng: 102.09479, lat: 12.5295, lng: 102.0940, dist: 40, shade: 90, th:{t:"จุดชมวิว 2: วังปลา", d:"ทางแยกขวา (40ม.)"}, img: "https://picsum.photos/seed/v2/400/200" },
-            { id: 103, pLat: 12.52999, pLng: 102.09479, lat: 12.5302, lng: 102.0942, dist: 80, shade: 85, th:{t:"จุดชมวิว 3: วิถีเสม็ดงาม", d:"ทางเดินแยก (80ม.)"}, img: "https://picsum.photos/seed/v3/400/200" },
-            { id: 104, pLat: 12.52973, pLng: 102.09461, lat: 12.5292, lng: 102.0940, dist: 60, shade: 75, th:{t:"จุดชมวิว 4: รังนกแขวก", d:"แยกจากสถานี 2 (60ม.)"}, img: "https://picsum.photos/seed/v4/400/200" },
-            { id: 105, pLat: 12.52973, pLng: 102.09461, lat: 12.5299, lng: 102.0941, dist: 35, shade: 80, th:{t:"จุดชมวิว 5: ลานโกงกาง", d:"ทางแยกขวา (35ม.)"}, img: "https://picsum.photos/seed/v5/400/200" },
-            { id: 106, pLat: 12.52973, pLng: 102.09461, lat: 12.5295, lng: 102.0952, dist: 70, shade: 60, th:{t:"จุดชมวิว 6: พักใจริมน้ำ", d:"ทางเดินแยก (70ม.)"}, img: "https://picsum.photos/seed/v6/400/200" },
-            { id: 107, pLat: 12.52920, pLng: 102.09498, lat: 12.5288, lng: 102.0955, dist: 45, shade: 90, th:{t:"จุดชมวิว 7: ปากอ่าว", d:"แยกจากสถานี 3 (45ม.)"}, img: "https://picsum.photos/seed/v7/400/200" },
-            { id: 108, pLat: 12.52920, pLng: 102.09498, lat: 12.5290, lng: 102.0958, dist: 30, shade: 95, th:{t:"จุดชมวิว 8: อุโมงค์ราก", d:"ทางแยกซ้าย (30ม.)"}, img: "https://picsum.photos/seed/v8/400/200" },
-            { id: 109, pLat: 12.52920, pLng: 102.09498, lat: 12.5295, lng: 102.0955, dist: 55, shade: 70, th:{t:"จุดชมวิว 9: หอคอยนก", d:"ทางแยกขวา (55ม.)"}, img: "https://picsum.photos/seed/v9/400/200" },
-            { id: 110, pLat: 12.52920, pLng: 102.09498, lat: 12.5285, lng: 102.0945, dist: 90, shade: 65, th:{t:"จุดชมวิว 10: ป่าร้อยปี", d:"ทางเดินแยก (90ม.)"}, img: "https://picsum.photos/seed/v10/400/200" }
+            { id: 101, pLat: 12.52999, pLng: 102.09479, lat: 12.5305, lng: 102.0950, shade: 100, th:{t:"จุดชมวิว 1: ทุ่งชายเลน", d:"แยกจากสถานี 1 (50ม.)"}, img: "https://picsum.photos/seed/v1/400/200" },
+            { id: 102, pLat: 12.52999, pLng: 102.09479, lat: 12.5295, lng: 102.0940, shade: 90, th:{t:"จุดชมวิว 2: วังปลา", d:"ทางแยกขวา (40ม.)"}, img: "https://picsum.photos/seed/v2/400/200" },
+            { id: 103, pLat: 12.52999, pLng: 102.09479, lat: 12.5302, lng: 102.0942, shade: 85, th:{t:"จุดชมวิว 3: วิถีเสม็ดงาม", d:"ทางเดินแยก (80ม.)"}, img: "https://picsum.photos/seed/v3/400/200" },
+            { id: 104, pLat: 12.52973, pLng: 102.09461, lat: 12.5292, lng: 102.0940, shade: 75, th:{t:"จุดชมวิว 4: รังนกแขวก", d:"แยกจากสถานี 2 (60ม.)"}, img: "https://picsum.photos/seed/v4/400/200" },
+            { id: 105, pLat: 12.52973, pLng: 102.09461, lat: 12.5299, lng: 102.0941, shade: 80, th:{t:"จุดชมวิว 5: ลานโกงกาง", d:"ทางแยกขวา (35ม.)"}, img: "https://picsum.photos/seed/v5/400/200" },
+            { id: 106, pLat: 12.52973, pLng: 102.09461, lat: 12.5295, lng: 102.0952, shade: 60, th:{t:"จุดชมวิว 6: พักใจริมน้ำ", d:"ทางเดินแยก (70ม.)"}, img: "https://picsum.photos/seed/v6/400/200" },
+            { id: 107, pLat: 12.52920, pLng: 102.09498, lat: 12.5288, lng: 102.0955, shade: 90, th:{t:"จุดชมวิว 7: ปากอ่าว", d:"แยกจากสถานี 3 (45ม.)"}, img: "https://picsum.photos/seed/v7/400/200" },
+            { id: 108, pLat: 12.52920, pLng: 102.09498, lat: 12.5290, lng: 102.0958, shade: 95, th:{t:"จุดชมวิว 8: อุโมงค์ราก", d:"ทางแยกซ้าย (30ม.)"}, img: "https://picsum.photos/seed/v8/400/200" },
+            { id: 109, pLat: 12.52920, pLng: 102.09498, lat: 12.5295, lng: 102.0955, shade: 70, th:{t:"จุดชมวิว 9: หอคอยนก", d:"ทางแยกขวา (55ม.)"}, img: "https://picsum.photos/seed/v9/400/200" },
+            { id: 110, pLat: 12.52920, pLng: 102.09498, lat: 12.5285, lng: 102.0945, shade: 65, th:{t:"จุดชมวิว 10: ป่าร้อยปี", d:"ทางเดินแยก (90ม.)"}, img: "https://picsum.photos/seed/v10/400/200" }
         ]
     };
 
@@ -376,8 +380,8 @@
         }
     };
 
-    const map = L.map('map', { zoomControl: false }).setView([12.5288, 102.0945], 16);
-    L.control.zoom({ position: 'topright' }).addTo(map);
+    // เปิดแผนที่ ปล่อยให้ปุ่ม Zoom กลับไปอยู่ Top-Left (ตำแหน่งเริ่มต้นปกติ)
+    const map = L.map('map').setView([12.5288, 102.0945], 16);
     
     const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
     const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}');
@@ -402,14 +406,6 @@
         const icon = document.getElementById('toggle-icon');
         
         panel.classList.toggle('sidebar-hidden');
-        
-        if (panel.classList.contains('sidebar-hidden')) {
-            icon.classList.remove('fa-chevron-right');
-            icon.classList.add('fa-chevron-left');
-        } else {
-            icon.classList.remove('fa-chevron-left');
-            icon.classList.add('fa-chevron-right');
-        }
         setTimeout(() => { map.invalidateSize(); }, 300);
     }
 
@@ -477,7 +473,6 @@
 
         let d1 = getMinDist(pos, arr1);
         let d2 = getMinDist(pos, arr2);
-        
         let threshold = 50; 
 
         const junctionPoints = [
@@ -580,7 +575,6 @@
         document.getElementById('route-switch-dialog').style.display = 'none';
         
         currentSubRoute = 'all'; 
-        isOffRoute = false;
         hasPromptedSwitch = false;
         pendingSwitchTarget = '';
 
@@ -597,11 +591,12 @@
         checkLocation(); 
     }
 
-    // ฟังก์ชันสร้างหน้าการ์ด และคำนวณแคลอรี่
+    // ==========================================
+    // คำนวณ Kcal จากสูตร (3.5 * น้ำหนัก * สัมประสิทธิ์)
+    // ==========================================
     function createCardHTML(s, badgeClass, routeName, weight, isViewpoint) {
         const w = parseFloat(weight) || 0;
         const factor = isViewpoint ? 0.05 : 0.1;
-        // สูตรการคำนวณ Kcal: 3.5 * น้ำหนัก * สัมประสิทธิ์ (ไม่ต้องคูณระยะทางแล้ว)
         const kcal = (3.5 * w * factor).toFixed(1); 
         
         const icon = routeName.includes('มู') ? 'fa-hands-praying' : (isViewpoint ? 'fa-camera' : 'fa-person-walking');
