@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mangrove Wellness & 10 Viewpoints StoryMap</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root { --primary: #1a4d2e; --wellness: #27ae60; --faith: #b8860b; --view: #1e88e5; --warning: #ff9800; --bg: #f4f7f6; }
+        body { margin: 0; font-family: 'Tahoma', sans-serif; display: flex; flex-direction: column; height: 100vh; background: var(--bg); overflow: hidden; }
+        
+        /* Header */
+        header { background: var(--primary); color: white; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; z-index: 1000; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        .header-controls { display: flex; gap: 15px; align-items: center; font-size: 14px; }
+        select, input { padding: 6px; border-radius: 4px; border: 1px solid #ccc; outline: none; font-size: 16px; }
+
+        /* Main Container */
+        #main-container { display: flex; flex: 1; position: relative; overflow: hidden; }
+        #map { flex: 1; height: 100%; z-index: 1; transition: width 0.3s ease; border-right: 1px solid #ddd; }
+        
+        /* Sidebar */
+        #story-panel { 
+            width: 420px; 
+            min-width: 420px; 
+            background: white; 
+            box-shadow: -2px 0 5px rgba(0,0,0,0.1); 
+            z-index: 2; 
+            display: flex; 
+            flex-direction: column;
+            transition: margin-right 0.3s ease; 
+            position: relative;
+        }
+        
+        .sidebar-hidden { margin-right: -420px; }
+
+        /* ปุ่มซ่อน/แสดง Sidebar */
+        .toggle-sidebar-btn {
+            position: absolute;
+            left: -25px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: white;
+            border: 1px solid #ddd;
+            border-right: none;
+            width: 25px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border-radius: 8px 0 0 8px;
+            box-shadow: -2px 0 5px rgba(0,0,0,0.1);
+            z-index: 1000;
+            color: #555;
+            transition: 0.3s;
+        }
+        .sidebar-hidden .toggle-sidebar-btn { left: -25px; }
+
+        .panel-content { padding: 15px; overflow-y: auto; flex: 1; }
+
+        .advisory { background: #fdf2e9; padding: 12px; border-radius: 8px; margin-bottom: 15px; border-left: 5px solid var(--warning); font-size: 13px; font-weight: bold; color: #d35400; }
+        
+        .route-tabs { display: flex; margin-bottom: 15px; border-radius: 6px; overflow: hidden; border: 1px solid #ddd; gap: 2px; }
+        .tab-btn { flex: 1; padding: 12px; border: none; cursor: pointer; background: #eee; font-weight: bold; transition: 0.3s; font-size: 12px; color: #555; }
+        .tab-btn.active.wellness { background: var(--wellness); color: white; }
+        .tab-btn.active.faith { background: var(--faith); color: white; }
+        .tab-btn.active.viewpoints { background: var(--view); color: white; }
+
+        /* Cards */
+        .card { background: white; border-radius: 10px; overflow: hidden; margin-bottom: 15px; border: 1px solid #eee; box-shadow: 0 2px 5px rgba(0,0,0,0.05); cursor: pointer; transition: 0.2s; }
+        .card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .card img { width: 100%; height: 140px; object-fit: cover; }
+        .card-body { padding: 12px; }
+        
+        .badge-container { display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+        .badge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; font-size: 11px; border-radius: 12px; font-weight: bold; border: 1px solid transparent; }
+        
+        .badge-route1 { background: #e8f8f5; color: #27ae60; border-color: #27ae60; }
+        .badge-route2 { background: #f4ecf7; color: #8e44ad; border-color: #8e44ad; }
+        .badge-faith1 { background: #fcf3cf; color: #b8860b; border-color: #b8860b; }
+        .badge-faith2 { background: #f4ecf7; color: #8e44ad; border-color: #8e44ad; }
+        .badge-view { background: #e3f2fd; color: #1565c0; border-color: #1e88e5; }
+        
+        .badge-shade { background: #eafaf1; color: #1e8449; }
+        .badge-kcal { background: #ebf5fb; color: #2980b9; }
+
+        .card-title { font-size: 16px; margin: 0 0 5px 0; color: #333; font-family: inherit; }
+        .card-desc { font-size: 13px; color: #777; margin: 0; line-height: 1.4; }
+
+        /* ปุ่มแผนที่ */
+        .map-controls-left { position: absolute; bottom: 30px; left: 20px; z-index: 1000; display: flex; flex-direction: column; gap: 10px; }
+        .map-btn { background: white; border: 2px solid #ccc; width: 45px; height: 45px; border-radius: 50%; box-shadow: 0 4px 10px rgba(0,0,0,0.2); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 20px; transition: 0.2s; color: #444; }
+        .map-btn:hover { background: #f0f0f0; transform: scale(1.05); }
+        .map-btn.active-layer { color: #2980b9; border-color: #2980b9; }
+
+        /* Custom Marker */
+        .custom-user-icon { position: relative; display: flex; justify-content: center; align-items: center; }
+        .user-dot { width: 16px; height: 16px; background: #3498db; border: 3px solid white; border-radius: 50%; box-shadow: 0 0 8px rgba(0,0,0,0.6); z-index: 2; position: relative; }
+        .user-heading { width: 50px; height: 50px; position: absolute; z-index: 1; top: calc(50% - 25px); left: calc(50% - 25px); background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 50"><path d="M25 5 L37 25 L25 21 L13 25 Z" fill="rgba(52,152,219,0.5)"/></svg>'); background-size: cover; transform-origin: center; transition: transform 0.1s ease-out; display: none; }
+
+        /* Dialogs */
+        .dialog-overlay { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: white; padding: 20px; border-radius: 15px; z-index: 9999; display: none; width: 320px; box-shadow: 0 8px 25px rgba(0,0,0,0.3); text-align: center; }
+        #route-switch-dialog { border-top: 5px solid var(--warning); }
+        
+        .btn-switch { background: var(--warning); color: white; border: none; padding: 12px; border-radius: 25px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 15px; font-size: 14px; }
+        .btn-cancel { background: none; color: gray; border: none; padding: 10px; cursor: pointer; width: 100%; margin-top: 5px; font-size: 14px; text-decoration: underline; }
+
+        /* ======================================================== */
+        /* RESPONSIVE DESIGN สำหรับโทรศัพท์มือถือ */
+        /* ======================================================== */
+        @media (max-width: 768px) {
+            header { flex-direction: column; align-items: stretch; gap: 10px; padding: 12px 15px; }
+            .header-controls { justify-content: space-between; width: 100%; }
+            #txt-title { text-align: center; margin-bottom: 5px; }
+            #main-container { flex-direction: column; position: relative; }
+            #map { flex: 1; min-height: 45vh; border-right: none; z-index: 1; }
+            
+            #story-panel { 
+                position: absolute; 
+                bottom: 0; 
+                left: 0;
+                width: 100%; min-width: 100%; 
+                height: 48vh; flex: none; 
+                transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1); 
+                margin-right: 0 !important; 
+                transform: translateY(0);
+                border-radius: 20px 20px 0 0;
+                box-shadow: 0 -5px 15px rgba(0,0,0,0.15);
+            }
+            .sidebar-hidden { transform: translateY(100%); margin-bottom: 0; }
+
+            .toggle-sidebar-btn { 
+                left: 50%; 
+                top: -35px;
+                transform: translateX(-50%); 
+                width: 100px; 
+                height: 35px; 
+                border-radius: 20px 20px 0 0; 
+                background: white; 
+                border: none; 
+                box-shadow: 0 -4px 10px rgba(0,0,0,0.1); 
+                color: var(--wellness); 
+                font-size: 22px; 
+            }
+            .sidebar-hidden .toggle-sidebar-btn { left: 50%; top: -35px; } 
+            
+            #toggle-icon.fa-chevron-right { transform: rotate(90deg); }
+            #toggle-icon.fa-chevron-left { transform: rotate(90deg); }
+
+            .map-controls-left { top: 90px; bottom: auto; left: 10px; }
+            .map-btn { width: 40px; height: 40px; font-size: 18px; background: rgba(255,255,255,0.9); }
+            
+            .card img { height: 110px; }
+            .dialog-overlay { width: 85%; padding: 15px; }
+            #weight-input { width: 45px; text-align: center; font-weight: bold; color: var(--wellness); }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div id="txt-title" style="font-weight: bold; font-size: 18px;">Mangrove Smart StoryMap r.9</div>
+    <div class="header-controls">
+        <select id="lang-select" onchange="changeLang()">
+            <option value="th">🇹🇭 ไทย</option>
+            <option value="en">🇺🇸 English</option>
+        </select>
+        <span>
+            <span id="lbl-weight">น้ำหนัก (กก.):</span> 
+            <input type="number" inputmode="numeric" pattern="[0-9]*" id="weight-input" value="65" style="width: 50px;" oninput="renderUI()">
+        </span>
+        <span>
+            <span id="lbl-time">เวลา:</span> 
+            <b id="current-time">00:00</b>
+        </span>
+    </div>
+</header>
+
+<div id="main-container">
+    
+    <div class="map-controls-left">
+        <button class="map-btn" id="btn-toggle-map" onclick="toggleMapLayer()" title="สลับแผนที่ดาวเทียม/ถนน">
+            <i class="fa-solid fa-layer-group"></i>
+        </button>
+        <button class="map-btn" onclick="resetLocation()" title="กลับไปตำแหน่งปัจจุบัน">
+            <i class="fa-solid fa-crosshairs"></i>
+        </button>
+    </div>
+
+    <div id="map"></div>
+
+    <div id="route-switch-dialog" class="dialog-overlay">
+        <strong style="color: #d35400; font-size: 18px;" id="j-name"><i class="fa-solid fa-route"></i> ใกล้เส้นทางใหม่</strong>
+        <p style="font-size: 13px; color: #555; margin: 12px 0;">
+            ดูเหมือนคุณกำลังเดินไปทาง <br><b id="switch-target-name" style="color: #2980b9; font-size: 16px;"></b><br>ต้องการสลับข้อมูลเป็นเส้นทางนี้หรือไม่?
+        </p>
+        <button class="btn-switch" onclick="acceptSwitch()">ตกลง (เปลี่ยนเส้นทาง)</button>
+        <button class="btn-cancel" onclick="declineSwitch()">เดินเส้นทางเดิมต่อ</button>
+    </div>
+
+    <aside id="story-panel">
+        <div class="toggle-sidebar-btn" onclick="toggleSidebar()">
+            <i id="toggle-icon" class="fa-solid fa-chevron-right"></i>
+        </div>
+
+        <div class="panel-content">
+            <div id="time-advisory" class="advisory"></div>
+            <div class="route-tabs">
+                <button class="tab-btn active wellness" id="tab-wellness" onclick="setRoute('wellness')">Wellness (สุขภาพ)</button>
+                <button class="tab-btn faith" id="tab-faith" onclick="setRoute('faith')">Faith (สายมู)</button>
+                <button class="tab-btn viewpoints" id="tab-viewpoints" onclick="setRoute('viewpoints')">จุดชมวิว</button>
+            </div>
+            <div id="story-list"></div>
+        </div>
+    </aside>
+
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    let currentLang = 'th';
+    let currentRoute = 'wellness';
+    let currentPos = null;
+    let headingAngle = 0;
+
+    let currentSubRoute = 'all'; 
+    let hasPromptedSwitch = false;
+    let pendingSwitchTarget = '';
+    let isManualMode = false;
+    const hour = new Date().getHours();
+
+    // ฐานข้อมูล (Data)
+    const db = {
+        wellness1: [
+            { id: 1, lat: 12.52999, lng: 102.09479, shade: 80, img: "https://picsum.photos/seed/w1/400/200", th: { t: "1. ศูนย์บริการนักท่องเที่ยว", d: "จุดเริ่มต้นฟื้นฟู สูดลมหายใจลึกๆ" }, en: { t: "1. Visitor Center", d: "Start your journey here." } },
+            { id: 1.1, lat: 12.52991, lng: 102.09468, shade: 0, img: "https://picsum.photos/seed/w1/400/200", th: { t: "1. ศูนย์บริการนักท่องเที่ยว", d: "จุดเริ่มต้นฟื้นฟู สูดลมหายใจลึกๆ" }, en: { t: "1. Visitor Center", d: "Start your journey here." } },
+            { id: 1.2, lat: 12.52983, lng: 102.09474, shade: 0, img: "https://picsum.photos/seed/w1/400/200", th: { t: "1. ศูนย์บริการนักท่องเที่ยว", d: "จุดเริ่มต้นฟื้นฟู สูดลมหายใจลึกๆ" }, en: { t: "1. Visitor Center", d: "Start your journey here." } },
+            { id: 2, lat: 12.52973, lng: 102.09461, shade: 80, img: "https://picsum.photos/seed/f1/400/200", th: { t: "1. ศูนย์บริการนักท่องเที่ยว", d: "จุดเริ่มต้นแสวงบุญ" }, en: { t: "1. Visitor Center", d: "Start your faith journey." } },
+            { id: 2.1, lat: 12.52955, lng: 102.09474, shade: 0, img: "https://picsum.photos/seed/w1/400/200", th: { t: "1. ศูนย์บริการนักท่องเที่ยว", d: "จุดเริ่มต้นฟื้นฟู สูดลมหายใจลึกๆ" }, en: { t: "1. Visitor Center", d: "Start your journey here." } },
+            { id: 2.2, lat: 12.52948, lng: 102.09464, shade: 0, img: "https://picsum.photos/seed/w1/400/200", th: { t: "1. ศูนย์บริการนักท่องเที่ยว", d: "จุดเริ่มต้นฟื้นฟู สูดลมหายใจลึกๆ" }, en: { t: "1. Visitor Center", d: "Start your journey here." } },
+            { id: 2.3, lat: 12.52912, lng: 102.09487, shade: 0, img: "https://picsum.photos/seed/w1/400/200", th: { t: "1. ศูนย์บริการนักท่องเที่ยว", d: "จุดเริ่มต้นฟื้นฟู สูดลมหายใจลึกๆ" }, en: { t: "1. Visitor Center", d: "Start your journey here." } },
+            { id: 3, lat: 12.52920, lng: 102.09498, shade: 80, img: "https://picsum.photos/seed/w1/400/200", th: { t: "1. ศูนย์บริการนักท่องเที่ยว", d: "จุดเริ่มต้นฟื้นฟู สูดลมหายใจลึกๆ" }, en: { t: "1. Visitor Center", d: "Start your journey here." } },
+            { id: 3.1, lat: 12.52931, lng: 102.09523, shade: 0, img: "https://picsum.photos/seed/w1/400/200", th: { t: "1. ศูนย์บริการนักท่องเที่ยว", d: "จุดเริ่มต้นฟื้นฟู สูดลมหายใจลึกๆ" }, en: { t: "1. Visitor Center", d: "Start your journey here." } },
+            { id: 3.2, lat: 12.52937, lng: 102.09549, shade: 0, img: "https://picsum.photos/seed/w1/400/200", th: { t: "1. ศูนย์บริการนักท่องเที่ยว", d: "จุดเริ่มต้นฟื้นฟู สูดลมหายใจลึกๆ" }, en: { t: "1. Visitor Center", d: "Start your journey here." } },
+            { id: 3.3, lat: 12.52936, lng: 102.09570, shade: 0, img: "https://picsum.photos/seed/w1/400/200", th: { t: "1. ศูนย์บริการนักท่องเที่ยว", d: "จุดเริ่มต้นฟื้นฟู สูดลมหายใจลึกๆ" }, en: { t: "1. Visitor Center", d: "Start your journey here." } },
+            { id: 3.4, lat: 12.52934, lng: 102.09589, shade: 0, img: "https://picsum.photos/seed/w1/400/200", th: { t: "1. ศูนย์บริการนักท่องเที่ยว", d: "จุดเริ่มต้นฟื้นฟู สูดลมหายใจลึกๆ" }, en: { t: "1. Visitor Center", d: "Start your journey here." } },
+            { id: 3.5, lat: 12.52929, lng: 102.09610, shade: 0, img: "https://picsum.photos/seed/w1/400/200", th: { t: "1. ศูนย์บริการนักท่องเที่ยว", d: "จุดเริ่มต้นฟื้นฟู สูดลมหายใจลึกๆ" }, en: { t: "1. Visitor Center", d: "Start your journey here." } },
+            { id: 3.6, lat: 12.52921, lng: 102.09625, shade: 0, img: "https://picsum.photos/seed/w1/400/200", th: { t: "1. ศูนย์บริการนักท่องเที่ยว", d: "จุดเริ่มต้นฟื้นฟู สูดลมหายใจลึกๆ" }, en: { t: "1. Visitor Center", d: "Start your journey here." } },
+            { id: 3.7, lat: 12.52912, lng: 102.09638, shade: 0, img: "https://picsum.photos/seed/w1/400/200", th: { t: "1. ศูนย์บริการนักท่องเที่ยว", d: "จุดเริ่มต้นฟื้นฟู สูดลมหายใจลึกๆ" }, en: { t: "1. Visitor Center", d: "Start your journey here." } },
+            { id: 3.8, lat: 12.52884, lng: 102.09663, shade: 0, img: "https://picsum.photos/seed/w1/400/200", th: { t: "1. ศูนย์บริการนักท่องเที่ยว", d: "จุดเริ่มต้นฟื้นฟู สูดลมหายใจลึกๆ" }, en: { t: "1. Visitor Center", d: "Start your journey here." } },
+            { id: 3.9, lat: 12.52860, lng: 102.09674, shade: 0, img: "https://picsum.photos/seed/w1/400/200", th: { t: "1. ศูนย์บริการนักท่องเที่ยว", d: "จุดเริ่มต้นฟื้นฟู สูดลมหายใจลึกๆ" }, en: { t: "1. Visitor Center", d: "Start your journey here." } },
+            { id: 3.10, lat: 12.52841, lng: 102.09678, shade: 0, img: "https://picsum.photos/seed/w1/400/200", th: { t: "1. ศูนย์บริการนักท่องเที่ยว", d: "จุดเริ่มต้นฟื้นฟู สูดลมหายใจลึกๆ" }, en: { t: "1. Visitor Center", d: "Start your journey here." } },
+            { id: 3.11, lat: 12.52824, lng: 102.09679, shade: 0, img: "https://picsum.photos/seed/w1/400/200", th: { t: "1. ศูนย์บริการนักท่องเที่ยว", d: "จุดเริ่มต้นฟื้นฟู สูดลมหายใจลึกๆ" }, en: { t: "1. Visitor Center", d: "Start your journey here." } },
+            { id: 3.12, lat: 12.52819, lng: 102.09719, shade: 0, img: "https://picsum.photos/seed/w1/400/200", th: { t: "1. ศูนย์บริการนักท่องเที่ยว", d: "จุดเริ่มต้นฟื้นฟู สูดลมหายใจลึกๆ" }, en: { t: "1. Visitor Center", d: "Start your journey here." } },
+            { id: 3.13, lat: 12.52838, lng: 102.09742, shade: 0, img: "https://picsum.photos/seed/w1/400/200", th: { t: "1. ศูนย์บริการนักท่องเที่ยว", d: "จุดเริ่มต้นฟื้นฟู สูดลมหายใจลึกๆ" }, en: { t: "1. Visitor Center", d: "Start your journey here." } },
+            { id: 3.14, lat: 12.52832, lng: 102.09763, shade: 0, img: "https://picsum.photos/seed/w1/400/200", th: { t: "1. ศูนย์บริการนักท่องเที่ยว", d: "จุดเริ่มต้นฟื้นฟู สูดลมหายใจลึกๆ" }, en: { t: "1. Visitor Center", d: "Start your journey here." } },
+            { id: 3.15, lat: 12.52831, lng: 102.09791, shade: 0, img: "https://picsum.photos/seed/w1/400/200", th: { t: "1. ศูนย์บริการนักท่องเที่ยว", d: "จุดเริ่มต้นฟื้นฟู สูดลมหายใจลึกๆ" }, en: { t: "1. Visitor Center", d: "Start your journey here." } },
+            { id: 3.16, lat: 12.52827, lng: 102.09817, shade: 0, img: "https://picsum.photos/seed/w1/400/200", th: { t: "1. ศูนย์บริการนักท่องเที่ยว", d: "จุดเริ่มต้นฟื้นฟู สูดลมหายใจลึกๆ" }, en: { t: "1. Visitor Center", d: "Start your journey here." } },
+            { id: 3.17, lat: 12.52831, lng: 102.09837, shade: 0, img: "https://picsum.photos/seed/w1/400/200", th: { t: "1. ศูนย์บริการนักท่องเที่ยว", d: "จุดเริ่มต้นฟื้นฟู สูดลมหายใจลึกๆ" }, en: { t: "1. Visitor Center", d: "Start your journey here." } },
+            { id: 4.1, lat: 12.52807, lng: 102.09849, shade: 0, img: "https://picsum.photos/seed/w1/400/200", th: { t: "1. ศูนย์บริการนักท่องเที่ยว", d: "จุดเริ่มต้นฟื้นฟู สูดลมหายใจลึกๆ" }, en: { t: "1. Visitor Center", d: "Start your journey here." } },
+            { id: 4.2, lat: 12.52793, lng: 102.09876, shade: 0, img: "https://picsum.photos/seed/w1/400/200", th: { t: "1. ศูนย์บริการนักท่องเที่ยว", d: "จุดเริ่มต้นฟื้นฟู สูดลมหายใจลึกๆ" }, en: { t: "1. Visitor Center", d: "Start your journey here." } },
+            { id: 4.3, lat: 12.52771, lng: 102.09889, shade: 80, img: "https://picsum.photos/seed/w1/400/200", th: { t: "1. ศูนย์บริการนักท่องเที่ยว", d: "จุดเริ่มต้นฟื้นฟู สูดลมหายใจลึกๆ" }, en: { t: "1. Visitor Center", d: "Start your journey here." } },
+            { id: 4.4, lat: 12.52754, lng: 102.09899, shade: 0, img: "https://picsum.photos/seed/w1/400/200", th: { t: "1. ศูนย์บริการนักท่องเที่ยว", d: "จุดเริ่มต้นฟื้นฟู สูดลมหายใจลึกๆ" }, en: { t: "1. Visitor Center", d: "Start your journey here." } },
+            { id: 4.5, lat: 12.52724, lng: 102.09911, shade: 0, img: "https://picsum.photos/seed/w1/400/200", th: { t: "1. ศูนย์บริการนักท่องเที่ยว", d: "จุดเริ่มต้นฟื้นฟู สูดลมหายใจลึกๆ" }, en: { t: "1. Visitor Center", d: "Start your journey here." } },
+            { id: 4.6, lat: 12.52696, lng: 102.09929, shade: 0, img: "https://picsum.photos/seed/w1/400/200", th: { t: "1. ศูนย์บริการนักท่องเที่ยว", d: "จุดเริ่มต้นฟื้นฟู สูดลมหายใจลึกๆ" }, en: { t: "1. Visitor Center", d: "Start your journey here." } },
+            { id: 4.7, lat: 12.52675, lng: 102.09921, shade: 0, img: "https://picsum.photos/seed/w1/400/200", th: { t: "1. ศูนย์บริการนักท่องเที่ยว", d: "จุดเริ่มต้นฟื้นฟู สูดลมหายใจลึกๆ" }, en: { t: "1. Visitor Center", d: "Start your journey here." } },
+            { id: 4.8, lat: 12.52645, lng: 102.09892, shade: 80, img: "https://picsum.photos/seed/w1/400/200", th: { t: "1. ศูนย์บริการนักท่องเที่ยว", d: "จุดเริ่มต้นฟื้นฟู สูดลมหายใจลึกๆ" }, en: { t: "1. Visitor Center", d: "Start your journey here." } },
+            { id: 4.9, lat: 12.52612, lng: 102.09882, shade: 0, img: "https://picsum.photos/seed/w1/400/200", th: { t: "1. ศูนย์บริการนักท่องเที่ยว", d: "จุดเริ่มต้นฟื้นฟู สูดลมหายใจลึกๆ" }, en: { t: "1. Visitor Center", d: "Start your journey here." } },
+            { id: 4.10, lat: 12.52579, lng: 102.09866, shade: 80, img: "https://picsum.photos/seed/w1/400/200", th: { t: "1. ศูนย์บริการนักท่องเที่ยว", d: "จุดเริ่มต้นฟื้นฟู สูดลมหายใจลึกๆ" }, en: { t: "1. Visitor Center", d: "Start your journey here." } },
+            { id: 4.11, lat: 12.52564, lng: 102.09865, shade: 0, img: "https://picsum.photos/seed/w1/400/200", th: { t: "1. ศูนย์บริการนักท่องเที่ยว", d: "จุดเริ่มต้นฟื้นฟู สูดลมหายใจลึกๆ" }, en: { t: "1. Visitor Center", d: "Start your journey here." } },
+            { id: 4.12, lat: 12.52529, lng: 102.09808, shade: 0, img: "https://picsum.photos/seed/w1/400/200", th: { t: "1. ศูนย์บริการนักท่องเที่ยว", d: "จุดเริ่มต้นฟื้นฟู สูดลมหายใจลึกๆ" }, en: { t: "1. Visitor Center", d: "Start your journey here." } },
+            { id: 4.13, lat: 12.52524, lng: 102.09811, shade: 0, img: "https://picsum.photos/seed/w1/400/200", th: { t: "1. ศูนย์บริการนักท่องเที่ยว", d: "จุดเริ่มต้นฟื้นฟู สูดลมหายใจลึกๆ" }, en: { t: "1. Visitor Center", d: "Start your journey here." } },
+            { id: 4.14, lat: 12.52494, lng: 102.09760, shade: 0, img: "https://picsum.photos/seed/w1/400/200", th: { t: "1. ศูนย์บริการนักท่องเที่ยว", d: "จุดเริ่มต้นฟื้นฟู สูดลมหายใจลึกๆ" }, en: { t: "1. Visitor Center", d: "Start your journey here." } },
+            { id: 5, lat: 12.52462, lng: 102.09697, shade: 80, img: "https://picsum.photos/seed/w1/400/200", th: { t: "1. ศูนย์บริการนักท่องเที่ยว", d: "จุดเริ่มต้นฟื้นฟู สูดลมหายใจลึกๆ" }, en: { t: "1. Visitor Center", d: "Start your journey here." } },
+            { id: 6, lat: 12.52494, lng: 102.09687, shade: 80, img: "https://picsum.photos/seed/w1/400/200", th: { t: "1. ศูนย์บริการนักท่องเที่ยว", d: "จุดเริ่มต้นฟื้นฟู สูดลมหายใจลึกๆ" }, en: { t: "1. Visitor Center", d: "Start your journey here." } },
+            { id: 6.1, lat: 12.52545, lng: 102.09720, shade: 0, img: "https://picsum.photos/seed/w1/400/200", th: { t: "1. ศูนย์บริการนักท่องเที่ยว", d: "จุดเริ่มต้นฟื้นฟู สูดลมหายใจลึกๆ" }, en: { t: "1. Visitor Center", d: "Start your journey here." } },
+            { id: 6.2, lat: 12.52566, lng: 102.09697, shade: 0, img: "https://picsum.photos/seed/w1/400/200", th: { t: "1. ศูนย์บริการนักท่องเที่ยว", d: "จุดเริ่มต้นฟื้นฟู สูดลมหายใจลึกๆ" }, en: { t: "1. Visitor Center", d: "Start your journey here." } },
+            { id: 7, lat: 12.52570, lng: 102.09668, shade: 80, img: "https://picsum.photos/seed/w1/400/200", th: { t: "1. ศูนย์บริการนักท่องเที่ยว", d: "จุดเริ่มต้นฟื้นฟู สูดลมหายใจลึกๆ" }, en: { t: "1. Visitor Center", d: "Start your journey here." } },
+            { id: 7.1, lat: 12.52571, lng: 102.09661, shade: 0, img: "https://picsum.photos/seed/w1/400/200", th: { t: "1. ศูนย์บริการนักท่องเที่ยว", d: "จุดเริ่มต้นฟื้นฟู สูดลมหายใจลึกๆ" }, en: { t: "1. Visitor Center", d: "Start your journey here." } },
+            { id: 7.2, lat: 12.52575, lng: 102.09662, shade: 0, img: "https://picsum.photos/seed/w1/400/200", th: { t: "1. ศูนย์บริการนักท่องเที่ยว", d: "จุดเริ่มต้นฟื้นฟู สูดลมหายใจลึกๆ" }, en: { t: "1. Visitor Center", d: "Start your journey here." } },
+            { id: 7.3, lat: 12.52617, lng: 102.09642, shade: 0, img: "https://picsum.photos/seed/w1/400/200", th: { t: "1. ศูนย์บริการนักท่องเที่ยว", d: "จุดเริ่มต้นฟื้นฟู สูดลมหายใจลึกๆ" }, en: { t: "1. Visitor Center", d: "Start your journey here." } },
+            { id: 7.4, lat: 12.52625, lng: 102.09623, shade: 0, img: "https://picsum.photos/seed/w1/400/200", th: { t: "1. ศูนย์บริการนักท่องเที่ยว", d: "จุดเริ่มต้นฟื้นฟู สูดลมหายใจลึกๆ" }, en: { t: "1. Visitor Center", d: "Start your journey here." } },
+            { id: 7.5, lat: 12.52672, lng: 102.09594, shade: 0, img: "https://picsum.photos/seed/w1/400/200", th: { t: "1. ศูนย์บริการนักท่องเที่ยว", d: "จุดเริ่มต้นฟื้นฟู สูดลมหายใจลึกๆ" }, en: { t: "1. Visitor Center", d: "Start your journey here." } },
+            { id: 8, lat: 12.52706, lng: 102.09547, shade: 80, img: "https://picsum.photos/seed/w1/400/200", th: { t: "1. ศูนย์บริการนักท่องเที่ยว", d: "จุดเริ่มต้นฟื้นฟู สูดลมหายใจลึกๆ" }, en: { t: "1. Visitor Center", d: "Start your journey here." } },
+            { id: 8.1, lat: 12.52713, lng: 102.09539, shade: 0, img: "https://picsum.photos/seed/w1/400/200", th: { t: "1. ศูนย์บริการนักท่องเที่ยว", d: "จุดเริ่มต้นฟื้นฟู สูดลมหายใจลึกๆ" }, en: { t: "1. Visitor Center", d: "Start your journey here." } },
+            { id: 8.2, lat: 12.52761, lng: 102.09537, shade: 0, img: "https://picsum.photos/seed/w1/400/200", th: { t: "1. ศูนย์บริการนักท่องเที่ยว", d: "จุดเริ่มต้นฟื้นฟู สูดลมหายใจลึกๆ" }, en: { t: "1. Visitor Center", d: "Start your journey here." } },
+            { id: 8.3, lat: 12.52766, lng: 102.09557, shade: 0, img: "https://picsum.photos/seed/w1/400/200", th: { t: "1. ศูนย์บริการนักท่องเที่ยว", d: "จุดเริ่มต้นฟื้นฟู สูดลมหายใจลึกๆ" }, en: { t: "1. Visitor Center", d: "Start your journey here." } },
+            { id: 8.4, lat: 12.52777, lng: 102.09566, shade: 0, img: "https://picsum.photos/seed/w1/400/200", th: { t: "1. ศูนย์บริการนักท่องเที่ยว", d: "จุดเริ่มต้นฟื้นฟู สูดลมหายใจลึกๆ" }, en: { t: "1. Visitor Center", d: "Start your journey here." } },
+            { id: 8.5, lat: 12.52791, lng: 102.09566, shade: 0, img: "https://picsum.photos/seed/w1/400/200", th: { t: "1. ศูนย์บริการนักท่องเที่ยว", d: "จุดเริ่มต้นฟื้นฟู สูดลมหายใจลึกๆ" }, en: { t: "1. Visitor Center", d: "Start your journey here." } },
+            { id: 8.6, lat: 12.52810, lng: 102.09561, shade: 0, img: "https://picsum.photos/seed/w1/400/200", th: { t: "1. ศูนย์บริการนักท่องเที่ยว", d: "จุดเริ่มต้นฟื้นฟู สูดลมหายใจลึกๆ" }, en: { t: "1. Visitor Center", d: "Start your journey here." } },
+            { id: 8.7, lat: 12.52822, lng: 102.09548, shade: 0, img: "https://picsum.photos/seed/w1/400/200", th: { t: "1. ศูนย์บริการนักท่องเที่ยว", d: "จุดเริ่มต้นฟื้นฟู สูดลมหายใจลึกๆ" }, en: { t: "1. Visitor Center", d: "Start your journey here." } },
+            { id: 8.8, lat: 12.52822, lng: 102.09521, shade: 0, img: "https://picsum.photos/seed/w1/400/200", th: { t: "1. ศูนย์บริการนักท่องเที่ยว", d: "จุดเริ่มต้นฟื้นฟู สูดลมหายใจลึกๆ" }, en: { t: "1. Visitor Center", d: "Start your journey here." } },
+            { id: 8.9, lat: 12.52828, lng: 102.09503, shade: 0, img: "https://picsum.photos/seed/w1/400/200", th: { t: "1. ศูนย์บริการนักท่องเที่ยว", d: "จุดเริ่มต้นฟื้นฟู สูดลมหายใจลึกๆ" }, en: { t: "1. Visitor Center", d: "Start your journey here." } },
+            { id: 8.9, lat: 12.52840, lng: 102.09488, shade: 0, img: "https://picsum.photos/seed/w1/400/200", th: { t: "1. ศูนย์บริการนักท่องเที่ยว", d: "จุดเริ่มต้นฟื้นฟู สูดลมหายใจลึกๆ" }, en: { t: "1. Visitor Center", d: "Start your journey here." } },
+            { id: 8.10, lat: 12.52855, lng: 102.09479, shade: 0, img: "https://picsum.photos/seed/w1/400/200", th: { t: "1. ศูนย์บริการนักท่องเที่ยว", d: "จุดเริ่มต้นฟื้นฟู สูดลมหายใจลึกๆ" }, en: { t: "1. Visitor Center", d: "Start your journey here." } },
+            { id: 8.11, lat: 12.52870, lng: 102.09476, shade: 0, img: "https://picsum.photos/seed/w1/400/200", th: { t: "1. ศูนย์บริการนักท่องเที่ยว", d: "จุดเริ่มต้นฟื้นฟู สูดลมหายใจลึกๆ" }, en: { t: "1. Visitor Center", d: "Start your journey here." } },
+            { id: 8.12, lat: 12.52889, lng: 102.09476, shade: 0, img: "https://picsum.photos/seed/w1/400/200", th: { t: "1. ศูนย์บริการนักท่องเที่ยว", d: "จุดเริ่มต้นฟื้นฟู สูดลมหายใจลึกๆ" }, en: { t: "1. Visitor Center", d: "Start your journey here." } },
+            { id: 8.13, lat: 12.52908, lng: 102.09484, shade: 0, img: "https://picsum.photos/seed/w1/400/200", th: { t: "1. ศูนย์บริการนักท่องเที่ยว", d: "จุดเริ่มต้นฟื้นฟู สูดลมหายใจลึกๆ" }, en: { t: "1. Visitor Center", d: "Start your journey here." } }
+        ],
+        wellness2: [
+            { lat: 12.52824, lng: 102.09438, shade: 0, img: "https://picsum.photos/seed/w1/400/200", th: { t: "1. ศูนย์บริการนักท่องเที่ยว", d: "จุดเริ่มต้นฟื้นฟู สูดลมหายใจลึกๆ" }, en: { t: "1. Visitor Center", d: "Start your journey here." } },
+            { lat: 12.52475, lng: 102.09658, shade: 0, img: "https://picsum.photos/seed/w1/400/200", th: { t: "1. ศูนย์บริการนักท่องเที่ยว", d: "จุดเริ่มต้นฟื้นฟู สูดลมหายใจลึกๆ" }, en: { t: "1. Visitor Center", d: "Start your journey here." } },
+            { lat: 12.52440, lng: 102.09636, shade: 0, img: "https://picsum.photos/seed/w1/400/200", th: { t: "1. ศูนย์บริการนักท่องเที่ยว", d: "จุดเริ่มต้นฟื้นฟู สูดลมหายใจลึกๆ" }, en: { t: "1. Visitor Center", d: "Start your journey here." } },
+            { lat: 12.52280, lng: 102.09260, shade: 0, img: "https://picsum.photos/seed/w1/400/200", th: { t: "1. ศูนย์บริการนักท่องเที่ยว", d: "จุดเริ่มต้นฟื้นฟู สูดลมหายใจลึกๆ" }, en: { t: "1. Visitor Center", d: "Start your journey here." } },
+            { lat: 12.52308, lng: 102.09210, shade: 0, img: "https://picsum.photos/seed/w1/400/200", th: { t: "1. ศูนย์บริการนักท่องเที่ยว", d: "จุดเริ่มต้นฟื้นฟู สูดลมหายใจลึกๆ" }, en: { t: "1. Visitor Center", d: "Start your journey here." } },
+            { lat: 12.52794, lng: 102.09408, shade: 0, img: "https://picsum.photos/seed/w1/400/200", th: { t: "1. ศูนย์บริการนักท่องเที่ยว", d: "จุดเริ่มต้นฟื้นฟู สูดลมหายใจลึกๆ" }, en: { t: "1. Visitor Center", d: "Start your journey here." } },
+            { lat: 12.52824, lng: 102.09438, shade: 0, img: "https://picsum.photos/seed/w1/400/200", th: { t: "1. ศูนย์บริการนักท่องเที่ยว", d: "จุดเริ่มต้นฟื้นฟู สูดลมหายใจลึกๆ" }, en: { t: "1. Visitor Center", d: "Start your journey here." } }
+        ],
+        faith1: [
+            { id: 1, lat: 12.52850, lng: 102.09422, dist: 1350, shade: 50, img: "https://picsum.photos/seed/f9/400/200", th:{t:"9. ตลาดชุมชน/ทางออก", d:"นำพากุศลกลับบ้าน"}, en:{t:"9. Market / Exit", d:"Take blessings home."} },
+            { id: 2, lat: 12.52919, lng: 102.09371, dist: 1350, shade: 50, img: "https://picsum.photos/seed/f9/400/200", th:{t:"9. ตลาดชุมชน/ทางออก", d:"นำพากุศลกลับบ้าน"}, en:{t:"9. Market / Exit", d:"Take blessings home."} },
+            { id: 3, lat: 12.52734, lng: 102.09310, dist: 1350, shade: 50, img: "https://picsum.photos/seed/f9/400/200", th:{t:"9. ตลาดชุมชน/ทางออก", d:"นำพากุศลกลับบ้าน"}, en:{t:"9. Market / Exit", d:"Take blessings home."} },
+            { id: 4, lat: 12.52721, lng: 102.09319, dist: 1350, shade: 50, img: "https://picsum.photos/seed/f9/400/200", th:{t:"9. ตลาดชุมชน/ทางออก", d:"นำพากุศลกลับบ้าน"}, en:{t:"9. Market / Exit", d:"Take blessings home."} },
+            { id: 5, lat: 12.52611, lng: 102.09279, dist: 1350, shade: 50, img: "https://picsum.photos/seed/f9/400/200", th:{t:"9. ตลาดชุมชน/ทางออก", d:"นำพากุศลกลับบ้าน"}, en:{t:"9. Market / Exit", d:"Take blessings home."} }
+        ],
+        faith2: [
+            { id: 69, lat: 12.52947, lng: 102.09460, dist: 1350, shade: 50, img: "https://picsum.photos/seed/f9/400/200", th:{t:"9. ตลาดชุมชน/ทางออก", d:"นำพากุศลกลับบ้าน"}, en:{t:"9. Market / Exit", d:"Take blessings home."} },
+            { id: 17, lat: 12.52955, lng: 102.09474, dist: 1350, shade: 50, img: "https://picsum.photos/seed/f9/400/200", th:{t:"9. ตลาดชุมชน/ทางออก", d:"นำพากุศลกลับบ้าน"}, en:{t:"9. Market / Exit", d:"Take blessings home."} },
+            { id: 19, lat: 12.52944, lng: 102.09459, dist: 1350, shade: 50, img: "https://picsum.photos/seed/f9/400/200", th:{t:"9. ตลาดชุมชน/ทางออก", d:"นำพากุศลกลับบ้าน"}, en:{t:"9. Market / Exit", d:"Take blessings home."} },
+            { id: 1, lat: 12.52910, lng: 102.09487, dist: 0, shade: 80, img: "https://picsum.photos/seed/f1/400/200", th:{t:"1. ศูนย์บริการนักท่องเที่ยว", d:"จุดเริ่มต้นแสวงบุญ"}, en:{t:"1. Visitor Center", d:"Start your faith journey."} },
+            { id: 11, lat: 12.52935, lng: 102.09539, dist: 20, shade: 80, img: "https://picsum.photos/seed/f2/400/200", th:{t:"2. ศาลชุมชน", d:"ไหว้เจ้าป่าขอบคุณธรรมชาติ"}, en:{t:"2. Community Shrine", d:"Pay respect to forest spirit."} },
+            { id: 3, lat: 12.52936, lng: 102.09590, dist: 350, shade: 95, img: "https://picsum.photos/seed/f3/400/200", th:{t:"3. อุโมงค์โกงกาง (จุดเชื่อม)", d:"ทางผ่านสู่ความสงบ"}, en:{t:"3. Mangrove Tunnel", d:"Gateway to serenity."} },
+            { id: 12, lat: 12.52913, lng: 102.09638, dist: 450, shade: 95, img: "https://picsum.photos/seed/f4/400/200", th:{t:"4. ต้นไม้ใหญ่ศักดิ์สิทธิ์", d:"จุดรับพลังงานบวกจากรุกขชาติ"}, en:{t:"4. Sacred Tree", d:"Absorb positive energy."} },
+            { id: 22, lat: 12.52838, lng: 102.09679, dist: 450, shade: 95, img: "https://picsum.photos/seed/f4/400/200", th:{t:"4. ต้นไม้ใหญ่ศักดิ์สิทธิ์", d:"จุดรับพลังงานบวกจากรุกขชาติ"}, en:{t:"4. Sacred Tree", d:"Absorb positive energy."} },
+            { id: 23, lat: 12.52772, lng: 102.09665, dist: 450, shade: 95, img: "https://picsum.photos/seed/f4/400/200", th:{t:"4. ต้นไม้ใหญ่ศักดิ์สิทธิ์", d:"จุดรับพลังงานบวกจากรุกขชาติ"}, en:{t:"4. Sacred Tree", d:"Absorb positive energy."} },
+            { id: 24, lat: 12.52733, lng: 102.09726, dist: 450, shade: 95, img: "https://picsum.photos/seed/f4/400/200", th:{t:"4. ต้นไม้ใหญ่ศักดิ์สิทธิ์", d:"จุดรับพลังงานบวกจากรุกขชาติ"}, en:{t:"4. Sacred Tree", d:"Absorb positive energy."} },
+            { id: 25, lat: 12.52642, lng: 102.09744, dist: 450, shade: 95, img: "https://picsum.photos/seed/f4/400/200", th:{t:"4. ต้นไม้ใหญ่ศักดิ์สิทธิ์", d:"จุดรับพลังงานบวกจากรุกขชาติ"}, en:{t:"4. Sacred Tree", d:"Absorb positive energy."} },
+            { id: 26, lat: 12.52599, lng: 102.09783, dist: 450, shade: 95, img: "https://picsum.photos/seed/f4/400/200", th:{t:"4. ต้นไม้ใหญ่ศักดิ์สิทธิ์", d:"จุดรับพลังงานบวกจากรุกขชาติ"}, en:{t:"4. Sacred Tree", d:"Absorb positive energy."} },
+            { id: 16, lat: 12.52577, lng: 102.09866, dist: 1150, shade: 60, img: "https://picsum.photos/seed/f8/400/200", th:{t:"8. ลานหินมงคล", d:"จุดรวบรวมสมาธิขั้นสุดท้าย"}, en:{t:"8. Auspicious Stone", d:"Final meditation spot."} },
+            { id: 18, lat: 12.52563, lng: 102.09866, dist: 1350, shade: 50, img: "https://picsum.photos/seed/f9/400/200", th:{t:"9. ตลาดชุมชน/ทางออก", d:"นำพากุศลกลับบ้าน"}, en:{t:"9. Market / Exit", d:"Take blessings home."} },
+            { id: 20, lat: 12.52530, lng: 102.09808, dist: 1350, shade: 50, img: "https://picsum.photos/seed/f9/400/200", th:{t:"9. ตลาดชุมชน/ทางออก", d:"นำพากุศลกลับบ้าน"}, en:{t:"9. Market / Exit", d:"Take blessings home."} },
+            { id: 99, lat: 12.52546, lng: 102.09797, dist: 1350, shade: 50, img: "https://picsum.photos/seed/f9/400/200", th:{t:"9. ตลาดชุมชน/ทางออก", d:"นำพากุศลกลับบ้าน"}, en:{t:"9. Market / Exit", d:"Take blessings home."} },
+            { id: 96, lat: 12.52568, lng: 102.09762, dist: 1350, shade: 50, img: "https://picsum.photos/seed/f9/400/200", th:{t:"9. ตลาดชุมชน/ทางออก", d:"นำพากุศลกลับบ้าน"}, en:{t:"9. Market / Exit", d:"Take blessings home."} },
+            { id: 97, lat: 12.52624, lng: 102.09711, dist: 1350, shade: 50, img: "https://picsum.photos/seed/f9/400/200", th:{t:"9. ตลาดชุมชน/ทางออก", d:"นำพากุศลกลับบ้าน"}, en:{t:"9. Market / Exit", d:"Take blessings home."} },
+            { id: 98, lat: 12.52708, lng: 102.09696, dist: 1350, shade: 50, img: "https://picsum.photos/seed/f9/400/200", th:{t:"9. ตลาดชุมชน/ทางออก", d:"นำพากุศลกลับบ้าน"}, en:{t:"9. Market / Exit", d:"Take blessings home."} },
+            { id: 95, lat: 12.52727, lng: 102.09685, dist: 1350, shade: 50, img: "https://picsum.photos/seed/f9/400/200", th:{t:"9. ตลาดชุมชน/ทางออก", d:"นำพากุศลกลับบ้าน"}, en:{t:"9. Market / Exit", d:"Take blessings home."} },
+            { id: 89, lat: 12.52731, lng: 102.09641, dist: 450, shade: 95, img: "https://picsum.photos/seed/f4/400/200", th:{t:"4. ต้นไม้ใหญ่ศักดิ์สิทธิ์", d:"จุดรับพลังงานบวกจากรุกขชาติ"}, en:{t:"4. Sacred Tree", d:"Absorb positive energy."} },
+            { id: 94, lat: 12.52719, lng: 102.09589, dist: 1350, shade: 50, img: "https://picsum.photos/seed/f9/400/200", th:{t:"9. ตลาดชุมชน/ทางออก", d:"นำพากุศลกลับบ้าน"}, en:{t:"9. Market / Exit", d:"Take blessings home."} },
+            { id: 93, lat: 12.52821, lng: 102.09645, dist: 1350, shade: 50, img: "https://picsum.photos/seed/f9/400/200", th:{t:"9. ตลาดชุมชน/ทางออก", d:"นำพากุศลกลับบ้าน"}, en:{t:"9. Market / Exit", d:"Take blessings home."} },
+            { id: 92, lat: 12.52861, lng: 102.09630, dist: 1350, shade: 50, img: "https://picsum.photos/seed/f9/400/200", th:{t:"9. ตลาดชุมชน/ทางออก", d:"นำพากุศลกลับบ้าน"}, en:{t:"9. Market / Exit", d:"Take blessings home."} },
+            { id: 91, lat: 12.52889, lng: 102.09581, dist: 1350, shade: 50, img: "https://picsum.photos/seed/f9/400/200", th:{t:"9. ตลาดชุมชน/ทางออก", d:"นำพากุศลกลับบ้าน"}, en:{t:"9. Market / Exit", d:"Take blessings home."} },
+            { id: 29, lat: 12.52844, lng: 102.09576, dist: 1350, shade: 50, img: "https://picsum.photos/seed/f9/400/200", th:{t:"9. ตลาดชุมชน/ทางออก", d:"นำพากุศลกลับบ้าน"}, en:{t:"9. Market / Exit", d:"Take blessings home."} },
+            { id: 39, lat: 12.52826, lng: 102.09509, dist: 1350, shade: 50, img: "https://picsum.photos/seed/f9/400/200", th:{t:"9. ตลาดชุมชน/ทางออก", d:"นำพากุศลกลับบ้าน"}, en:{t:"9. Market / Exit", d:"Take blessings home."} },
+            { id: 49, lat: 12.52859, lng: 102.09477, dist: 1350, shade: 50, img: "https://picsum.photos/seed/f9/400/200", th:{t:"9. ตลาดชุมชน/ทางออก", d:"นำพากุศลกลับบ้าน"}, en:{t:"9. Market / Exit", d:"Take blessings home."} },
+            { id: 59, lat: 12.52910, lng: 102.09487, dist: 1350, shade: 50, img: "https://picsum.photos/seed/f9/400/200", th:{t:"9. ตลาดชุมชน/ทางออก", d:"นำพากุศลกลับบ้าน"}, en:{t:"9. Market / Exit", d:"Take blessings home."} }
+        ],
+        viewpoints: [
+            { id: 101, pLat: 12.52999, pLng: 102.09479, lat: 12.5305, lng: 102.0950, dist: 50, shade: 100, th:{t:"จุดชมวิว 1: ทุ่งชายเลน", d:"แยกจากสถานี 1 (50ม.)"}, img: "https://picsum.photos/seed/v1/400/200" },
+            { id: 102, pLat: 12.52999, pLng: 102.09479, lat: 12.5295, lng: 102.0940, dist: 40, shade: 90, th:{t:"จุดชมวิว 2: วังปลา", d:"ทางแยกขวา (40ม.)"}, img: "https://picsum.photos/seed/v2/400/200" },
+            { id: 103, pLat: 12.52999, pLng: 102.09479, lat: 12.5302, lng: 102.0942, dist: 80, shade: 85, th:{t:"จุดชมวิว 3: วิถีเสม็ดงาม", d:"ทางเดินแยก (80ม.)"}, img: "https://picsum.photos/seed/v3/400/200" },
+            { id: 104, pLat: 12.52973, pLng: 102.09461, lat: 12.5292, lng: 102.0940, dist: 60, shade: 75, th:{t:"จุดชมวิว 4: รังนกแขวก", d:"แยกจากสถานี 2 (60ม.)"}, img: "https://picsum.photos/seed/v4/400/200" },
+            { id: 105, pLat: 12.52973, pLng: 102.09461, lat: 12.5299, lng: 102.0941, dist: 35, shade: 80, th:{t:"จุดชมวิว 5: ลานโกงกาง", d:"ทางแยกขวา (35ม.)"}, img: "https://picsum.photos/seed/v5/400/200" },
+            { id: 106, pLat: 12.52973, pLng: 102.09461, lat: 12.5295, lng: 102.0952, dist: 70, shade: 60, th:{t:"จุดชมวิว 6: พักใจริมน้ำ", d:"ทางเดินแยก (70ม.)"}, img: "https://picsum.photos/seed/v6/400/200" },
+            { id: 107, pLat: 12.52920, pLng: 102.09498, lat: 12.5288, lng: 102.0955, dist: 45, shade: 90, th:{t:"จุดชมวิว 7: ปากอ่าว", d:"แยกจากสถานี 3 (45ม.)"}, img: "https://picsum.photos/seed/v7/400/200" },
+            { id: 108, pLat: 12.52920, pLng: 102.09498, lat: 12.5290, lng: 102.0958, dist: 30, shade: 95, th:{t:"จุดชมวิว 8: อุโมงค์ราก", d:"ทางแยกซ้าย (30ม.)"}, img: "https://picsum.photos/seed/v8/400/200" },
+            { id: 109, pLat: 12.52920, pLng: 102.09498, lat: 12.5295, lng: 102.0955, dist: 55, shade: 70, th:{t:"จุดชมวิว 9: หอคอยนก", d:"ทางแยกขวา (55ม.)"}, img: "https://picsum.photos/seed/v9/400/200" },
+            { id: 110, pLat: 12.52920, pLng: 102.09498, lat: 12.5285, lng: 102.0945, dist: 90, shade: 65, th:{t:"จุดชมวิว 10: ป่าร้อยปี", d:"ทางเดินแยก (90ม.)"}, img: "https://picsum.photos/seed/v10/400/200" }
+        ]
+    };
+
+    const ui = {
+        th: { 
+            advise_hot: "แดดร้อน แนะนำเส้น Wellness ร่มรื่นกว่า", 
+            advise_cool: "อากาศดี แนะนำสายมูริมน้ำ", 
+            title: "Mangrove Smart StoryMap r.9",
+            lbl_weight: "น้ำหนัก (กก.):",
+            lbl_time: "เวลา:"
+        },
+        en: { 
+            advise_hot: "High UV. Wellness Route is shaded.", 
+            advise_cool: "Nice weather. Try the Faith path.", 
+            title: "Mangrove Smart StoryMap r.9",
+            lbl_weight: "Weight (kg):",
+            lbl_time: "Time:"
+        }
+    };
+
+    const map = L.map('map', { zoomControl: false }).setView([12.5288, 102.0945], 16);
+    L.control.zoom({ position: 'topright' }).addTo(map);
+    
+    const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
+    const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}');
+    
+    streetLayer.addTo(map);
+    let isSatellite = false;
+
+    let routeLayer = L.layerGroup().addTo(map);
+    let previewLayer = L.layerGroup().addTo(map); 
+
+    const userIcon = L.divIcon({
+        className: 'custom-user-icon',
+        html: `<div class="user-heading" id="user-heading"></div><div class="user-dot"></div>`,
+        iconSize: [50, 50],
+        iconAnchor: [25, 25] 
+    });
+
+    let userLoc = L.marker([12.5288, 102.0945], { icon: userIcon, draggable: true, zIndexOffset: 1000 }).addTo(map);
+
+    function toggleSidebar() {
+        const panel = document.getElementById('story-panel');
+        const icon = document.getElementById('toggle-icon');
+        
+        panel.classList.toggle('sidebar-hidden');
+        
+        if (panel.classList.contains('sidebar-hidden')) {
+            icon.classList.remove('fa-chevron-right');
+            icon.classList.add('fa-chevron-left');
+        } else {
+            icon.classList.remove('fa-chevron-left');
+            icon.classList.add('fa-chevron-right');
+        }
+        setTimeout(() => { map.invalidateSize(); }, 300);
+    }
+
+    function toggleMapLayer() {
+        const btn = document.getElementById('btn-toggle-map');
+        if (isSatellite) {
+            map.removeLayer(satelliteLayer);
+            streetLayer.addTo(map);
+            isSatellite = false;
+            btn.classList.remove('active-layer');
+        } else {
+            map.removeLayer(streetLayer);
+            satelliteLayer.addTo(map);
+            isSatellite = true;
+            btn.classList.add('active-layer');
+        }
+    }
+
+    function updateThailandTime() {
+        const now = new Date();
+        const options = { timeZone: 'Asia/Bangkok', hour: '2-digit', minute: '2-digit', hour12: false };
+        const thaiTime = now.toLocaleTimeString('en-US', options);
+        document.getElementById('current-time').innerText = thaiTime;
+    }
+    setInterval(updateThailandTime, 1000);
+
+    function getMinDist(latlng, routeArr) {
+        let min = Infinity;
+        routeArr.forEach(p => {
+            let d = latlng.distanceTo(L.latLng(p.lat, p.lng));
+            if(d < min) min = d;
+        });
+
+        for(let i=0; i < routeArr.length - 1; i++) {
+            let p1 = map.latLngToLayerPoint(L.latLng(routeArr[i].lat, routeArr[i].lng));
+            let p2 = map.latLngToLayerPoint(L.latLng(routeArr[i+1].lat, routeArr[i+1].lng));
+            let p = map.latLngToLayerPoint(latlng);
+            let closestP = L.LineUtil.closestPointOnSegment(p, p1, p2);
+            let closestLatLng = map.layerPointToLatLng(closestP);
+            let d = latlng.distanceTo(closestLatLng);
+            if(d < min) min = d;
+        }
+        return min;
+    }
+
+    userLoc.on('dragstart', () => { isManualMode = true; });
+
+    function cancelSwitchDialog() {
+        if (hasPromptedSwitch) {
+            document.getElementById('route-switch-dialog').style.display = 'none';
+            previewLayer.clearLayers();
+            hasPromptedSwitch = false;
+            pendingSwitchTarget = '';
+        }
+    }
+
+    function checkLocation() {
+        let pos = userLoc.getLatLng(); 
+        if (currentRoute === 'viewpoints') return;
+
+        let arr1 = currentRoute === 'wellness' ? db.wellness1 : db.faith1;
+        let arr2 = currentRoute === 'wellness' ? db.wellness2 : db.faith2;
+        let name1 = currentRoute === 'wellness' ? 'wellness1' : 'faith1';
+        let name2 = currentRoute === 'wellness' ? 'wellness2' : 'faith2';
+
+        let d1 = getMinDist(pos, arr1);
+        let d2 = getMinDist(pos, arr2);
+        
+        let threshold = 50; 
+
+        const junctionPoints = [
+            {lat: 12.52999, lng: 102.09479, name: "สถานี 1"},
+            {lat: 12.52973, lng: 102.09461, name: "สถานี 2"},
+            {lat: 12.52920, lng: 102.09498, name: "สถานี 3"}
+        ];
+        
+        let nearbyJunction = junctionPoints.find(j => pos.distanceTo(L.latLng(j.lat, j.lng)) < 40);
+        
+        if (nearbyJunction && !hasPromptedSwitch) {
+            previewLayer.clearLayers();
+            db.viewpoints.filter(v => v.pLat === nearbyJunction.lat && v.pLng === nearbyJunction.lng).forEach(v => {
+                L.polyline([[v.pLat, v.pLng], [v.lat, v.lng]], { color: '#1e88e5', weight: 4, dashArray: '10, 12', opacity: 0.5 }).addTo(previewLayer);
+            });
+            
+            document.getElementById('switch-target-name').innerText = "จุดชมวิวใกล้เคียง";
+            document.getElementById('route-switch-dialog').style.display = 'block';
+            pendingSwitchTarget = 'viewpoints';
+            hasPromptedSwitch = true;
+            return; 
+        }
+
+        if (currentSubRoute === 'all') {
+            if (d1 <= threshold && d2 > threshold) {
+                currentSubRoute = name1;
+                renderUI();
+            } else if (d2 <= threshold && d1 > threshold) {
+                currentSubRoute = name2;
+                renderUI();
+            }
+        } 
+        else if (currentSubRoute === name1) {
+            if (d1 > threshold && d2 <= threshold && !hasPromptedSwitch) {
+                showSwitchDialog(name2);
+            } else if (d1 <= threshold && hasPromptedSwitch) {
+                cancelSwitchDialog(); 
+            }
+        } 
+        else if (currentSubRoute === name2) {
+            if (d2 > threshold && d1 <= threshold && !hasPromptedSwitch) {
+                showSwitchDialog(name1);
+            } else if (d2 <= threshold && hasPromptedSwitch) {
+                cancelSwitchDialog(); 
+            }
+        }
+    }
+
+    userLoc.on('drag', checkLocation);
+    userLoc.on('dragend', checkLocation);
+    userLoc.on('move', checkLocation);
+
+    function showSwitchDialog(targetRoute) {
+        hasPromptedSwitch = true;
+        pendingSwitchTarget = targetRoute;
+        
+        let routeName = '';
+        let previewColor = '';
+        let targetData = [];
+
+        if(targetRoute === 'wellness1') { routeName = 'สายหลัก 1'; previewColor = '#27ae60'; targetData = db.wellness1; }
+        else if(targetRoute === 'wellness2') { routeName = 'สายย่อย 2'; previewColor = '#2980b9'; targetData = db.wellness2; }
+        else if(targetRoute === 'faith1') { routeName = 'สายมู 1'; previewColor = '#b8860b'; targetData = db.faith1; }
+        else if(targetRoute === 'faith2') { routeName = 'สายมู 2'; previewColor = '#8e44ad'; targetData = db.faith2; }
+
+        document.getElementById('switch-target-name').innerText = routeName;
+        document.getElementById('route-switch-dialog').style.display = 'block';
+
+        previewLayer.clearLayers();
+        let pts = targetData.map(s => [s.lat, s.lng]);
+        L.polyline(pts, { color: previewColor, weight: 6, dashArray: '10, 15', opacity: 0.5 }).addTo(previewLayer);
+    }
+
+    function acceptSwitch() {
+        document.getElementById('route-switch-dialog').style.display = 'none';
+        previewLayer.clearLayers(); 
+        
+        if (pendingSwitchTarget === 'viewpoints') {
+            setRoute('viewpoints');
+        } else {
+            currentSubRoute = pendingSwitchTarget;
+            renderUI(); 
+        }
+        setTimeout(() => { hasPromptedSwitch = false; }, 10000); 
+    }
+
+    function declineSwitch() {
+        document.getElementById('route-switch-dialog').style.display = 'none';
+        previewLayer.clearLayers(); 
+        setTimeout(() => { hasPromptedSwitch = false; }, 15000); 
+    }
+
+    function setRoute(r) {
+        currentRoute = r;
+        document.getElementById('tab-wellness').classList.remove('active', 'wellness');
+        document.getElementById('tab-faith').classList.remove('active', 'faith');
+        document.getElementById('tab-viewpoints').classList.remove('active', 'viewpoints');
+        
+        previewLayer.clearLayers(); 
+        document.getElementById('route-switch-dialog').style.display = 'none';
+        
+        currentSubRoute = 'all'; 
+        isOffRoute = false;
+        hasPromptedSwitch = false;
+        pendingSwitchTarget = '';
+
+        if(r === 'wellness') {
+            document.getElementById('tab-wellness').classList.add('active', 'wellness');
+        } else if (r === 'faith') {
+            document.getElementById('tab-faith').classList.add('active', 'faith');
+        } else if (r === 'viewpoints') {
+            document.getElementById('tab-viewpoints').classList.add('active', 'viewpoints');
+        }
+        
+        map.setView([12.5288, 102.0945], 16); 
+        renderUI();
+        checkLocation(); 
+    }
+
+    // ฟังก์ชันสร้างหน้าการ์ด และคำนวณแคลอรี่
+    function createCardHTML(s, badgeClass, routeName, weight, isViewpoint) {
+        const w = parseFloat(weight) || 0;
+        const factor = isViewpoint ? 0.05 : 0.1;
+        // สูตรการคำนวณ Kcal: 3.5 * น้ำหนัก * สัมประสิทธิ์ (ไม่ต้องคูณระยะทางแล้ว)
+        const kcal = (3.5 * w * factor).toFixed(1); 
+        
+        const icon = routeName.includes('มู') ? 'fa-hands-praying' : (isViewpoint ? 'fa-camera' : 'fa-person-walking');
+        const shadeText = isViewpoint ? 'แวะชม' : 'ร่มเงา';
+
+        return `
+            <div class="card" onclick="map.flyTo([${s.lat},${s.lng}], 18)">
+                <img src="${s.img}">
+                <div class="card-body">
+                    <div class="badge-container">
+                        <span class="badge ${badgeClass}"><i class="fa-solid ${icon}"></i> ${routeName}</span>
+                        <span class="badge badge-shade"><i class="fa-solid fa-tree"></i> ${shadeText} ${s.shade||100}%</span>
+                        <span class="badge badge-kcal"><i class="fa-solid fa-fire"></i> ${kcal} kcal</span>
+                    </div>
+                    <h3 class="card-title">${s[currentLang]?.t || s.th?.t || "จุดเช็คอิน"}</h3>
+                    <p class="card-desc">${s[currentLang]?.d || s.th?.d || "รายละเอียด..."}</p>
+                </div>
+            </div>`;
+    }
+
+    function drawRoute(routeData, badgeClass, routeName, color, isDashed, isViewpoint = false) {
+        if(!routeData || routeData.length === 0) return;
+        
+        const list = document.getElementById('story-list');
+        const weight = document.getElementById('weight-input').value || 65;
+        
+        if (isViewpoint) {
+            routeData.forEach(v => {
+                L.polyline([[v.pLat, v.pLng], [v.lat, v.lng]], { color: color, weight: 3, dashArray: '5, 10', opacity: 0.8 }).addTo(routeLayer);
+                list.innerHTML += createCardHTML(v, badgeClass, routeName, weight, true);
+                L.circleMarker([v.lat, v.lng], { color: color, radius: 7, fillOpacity: 0.9 }).addTo(routeLayer);
+            });
+        } else {
+            const pts = routeData.map(s => [s.lat, s.lng]);
+            L.polyline(pts, { color: color, weight: 5, opacity: 0.8, dashArray: isDashed ? '5, 10' : '' }).addTo(routeLayer);
+            
+            routeData.forEach(s => {
+                list.innerHTML += createCardHTML(s, badgeClass, routeName, weight, false);
+                L.circleMarker([s.lat, s.lng], { color: color, fillColor: '#fff', fillOpacity: 1, radius: 6, weight: 2 }).addTo(routeLayer);
+            });
+        }
+    }
+
+    function renderUI() {
+        routeLayer.clearLayers();
+        const list = document.getElementById('story-list');
+        list.innerHTML = '';
+        
+        document.getElementById('lbl-time').innerText = ui[currentLang].lbl_time;
+        document.getElementById('lbl-weight').innerText = ui[currentLang].lbl_weight;
+        document.getElementById('time-advisory').innerText = (hour >= 11 && hour <= 15) ? ui[currentLang].advise_hot : ui[currentLang].advise_cool;
+        document.getElementById('txt-title').innerText = ui[currentLang].title;
+
+        if (currentRoute === 'wellness') {
+            if (currentSubRoute === 'all' || currentSubRoute === 'wellness1') {
+                drawRoute(db.wellness1, 'badge-route1', 'สายหลัก 1', '#27ae60', false);
+            }
+            if (currentSubRoute === 'all' || currentSubRoute === 'wellness2') {
+                drawRoute(db.wellness2, 'badge-route2', 'สายย่อย 2', '#2980b9', true);
+            }
+        } else if (currentRoute === 'faith') {
+            if (currentSubRoute === 'all' || currentSubRoute === 'faith1') {
+                drawRoute(db.faith1, 'badge-faith1', 'สายมู 1', '#b8860b', false);
+            }
+            if (currentSubRoute === 'all' || currentSubRoute === 'faith2') {
+                drawRoute(db.faith2, 'badge-faith2', 'สายมู 2', '#8e44ad', true);
+            }
+        } else if (currentRoute === 'viewpoints') {
+            drawRoute(db.viewpoints, 'badge-view', 'จุดชมวิว', '#1e88e5', true, true);
+        }
+    }
+
+    function changeLang() { 
+        currentLang = document.getElementById('lang-select').value; 
+        renderUI(); 
+    }
+
+    function initGeolocation() {
+        if (navigator.geolocation) {
+            navigator.geolocation.watchPosition((pos) => {
+                const lat = pos.coords.latitude;
+                const lng = pos.coords.longitude;
+                currentPos = [lat, lng];
+                
+                if (!isManualMode) {
+                    userLoc.setLatLng(currentPos);
+                    checkLocation();
+                }
+            }, (err) => {
+                console.warn("GPS Error:", err.message);
+            }, { enableHighAccuracy: true });
+        }
+    }
+
+    function handleOrientation(event) {
+        let alpha = event.webkitCompassHeading || Math.abs(event.alpha - 360);
+        if (alpha != null) {
+            headingAngle = alpha;
+            const headingEl = document.getElementById('user-heading');
+            if (headingEl) {
+                headingEl.style.display = 'block';
+                headingEl.style.transform = `rotate(${headingAngle}deg)`;
+            }
+        }
+    }
+
+    function resetLocation() {
+        isManualMode = false; 
+
+        if (currentPos) {
+            userLoc.setLatLng(currentPos);
+            map.flyTo(currentPos, 17);
+            checkLocation();
+        } else {
+            navigator.geolocation.getCurrentPosition(pos => {
+                currentPos = [pos.coords.latitude, pos.coords.longitude];
+                userLoc.setLatLng(currentPos);
+                map.flyTo(currentPos, 17);
+                checkLocation();
+            }, err => alert("ไม่สามารถดึงตำแหน่งได้ กรุณาเปิด GPS"));
+        }
+
+        if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+            DeviceOrientationEvent.requestPermission()
+                .then(permissionState => {
+                    if (permissionState === 'granted') {
+                        window.addEventListener('deviceorientation', handleOrientation, true);
+                    }
+                }).catch(console.error);
+        } else {
+            window.addEventListener('deviceorientationabsolute', handleOrientation, true);
+        }
+    }
+
+    window.onload = () => {
+        updateThailandTime();
+        renderUI();
+        initGeolocation();
+    };
+</script>
+</body>
+</html>
