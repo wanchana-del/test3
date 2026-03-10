@@ -32,7 +32,7 @@
             position: relative;
         }
         
-        .sidebar-hidden { margin-right: -420px; }
+        #story-panel.sidebar-hidden { margin-right: -420px; }
 
         /* ปุ่มซ่อน/แสดง Sidebar (Desktop) */
         .toggle-sidebar-btn {
@@ -51,13 +51,14 @@
             z-index: 1000;
             color: white;
             font-size: 18px;
-            transition: 0.4s ease;
+            transition: 0.3s;
         }
-        .sidebar-hidden .toggle-sidebar-btn { left: -35px; }
-        .toggle-icon { transition: transform 0.4s ease; }
-        .sidebar-hidden .toggle-icon { transform: rotate(180deg); }
+        #story-panel.sidebar-hidden .toggle-sidebar-btn { left: -35px; }
 
-        .panel-content { padding: 15px; overflow-y: auto; flex: 1; height: 100%; box-sizing: border-box; }
+        .toggle-icon { transition: transform 0.4s ease; }
+        #story-panel.sidebar-hidden .toggle-icon { transform: rotate(180deg); }
+
+        .panel-content { padding: 15px; overflow-y: auto; flex: 1; }
 
         .advisory { background: #fdf2e9; padding: 12px; border-radius: 8px; margin-bottom: 15px; border-left: 5px solid var(--warning); font-size: 13px; font-weight: bold; color: #d35400; }
         
@@ -88,9 +89,9 @@
         .card-title { font-size: 16px; margin: 0 0 5px 0; color: #333; font-family: inherit; }
         .card-desc { font-size: 13px; color: #777; margin: 0; line-height: 1.4; }
 
-        /* ปุ่มแผนที่ */
-        .map-controls-left { position: absolute; top: 90px; left: 10px; z-index: 1000; display: flex; flex-direction: column; gap: 10px; }
-        .map-btn { background: rgba(255,255,255,0.9); border: 2px solid #ccc; width: 34px; height: 34px; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.2); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; transition: 0.2s; color: #444; }
+        /* ปุ่มแผนที่ (ซ้ายล่าง) */
+        .map-controls-left { position: absolute; bottom: 30px; left: 20px; z-index: 1000; display: flex; flex-direction: column; gap: 10px; }
+        .map-btn { background: white; border: 2px solid #ccc; width: 45px; height: 45px; border-radius: 50%; box-shadow: 0 4px 10px rgba(0,0,0,0.2); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 20px; transition: 0.2s; color: #444; }
         .map-btn:hover { background: #f0f0f0; transform: scale(1.05); }
         .map-btn.active-layer { color: #2980b9; border-color: #2980b9; }
 
@@ -99,13 +100,13 @@
         .user-dot { width: 16px; height: 16px; background: #3498db; border: 3px solid white; border-radius: 50%; box-shadow: 0 0 8px rgba(0,0,0,0.6); z-index: 2; position: relative; }
         .user-heading { width: 50px; height: 50px; position: absolute; z-index: 1; top: calc(50% - 25px); left: calc(50% - 25px); background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 50"><path d="M25 5 L37 25 L25 21 L13 25 Z" fill="rgba(52,152,219,0.5)"/></svg>'); background-size: cover; transform-origin: center; transition: transform 0.1s ease-out; display: none; }
 
-        /* Dialogs */
+        /* Dialog แจ้งเตือนสลับเส้นทาง */
         .dialog-overlay { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: white; padding: 20px; border-radius: 15px; z-index: 9999; display: none; width: 320px; box-shadow: 0 8px 25px rgba(0,0,0,0.3); text-align: center; border-top: 5px solid var(--warning); }
         .btn-switch { background: var(--warning); color: white; border: none; padding: 12px; border-radius: 25px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 15px; font-size: 14px; }
         .btn-cancel { background: none; color: gray; border: none; padding: 10px; cursor: pointer; width: 100%; margin-top: 5px; font-size: 14px; text-decoration: underline; }
 
         /* ======================================================== */
-        /* RESPONSIVE DESIGN (แก้เป็นลิ้นชักที่สมบูรณ์) */
+        /* RESPONSIVE DESIGN (แก้ปัญหาลิ้นชักไม่ลงในมือถือ) */
         /* ======================================================== */
         @media (max-width: 768px) {
             header { flex-direction: column; align-items: stretch; gap: 10px; padding: 10px 15px; }
@@ -113,44 +114,59 @@
             #txt-title { text-align: center; margin-bottom: 2px; }
             
             #main-container { flex-direction: column; position: relative; }
-            #map { flex: 1; min-height: 50vh; border-right: none; z-index: 1; }
+            #map { flex: 1; min-height: 45vh; border-right: none; z-index: 1; }
             
-            /* แถบข้อมูลลอยทับอยู่ด้านล่าง */
+            /* แถบข้อมูลลอยทับอยู่ด้านล่าง (แก้การล็อกตำแหน่งแล้ว) */
             #story-panel { 
                 position: absolute; 
                 bottom: 0; 
                 left: 0;
                 width: 100%; min-width: 100%; 
-                height: 50vh; flex: none; 
+                height: 48vh; flex: none; 
+                /* ใช้ transform translateY ในการเลื่อนขึ้นลง */
                 transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1); 
                 margin-right: 0 !important; 
-                transform: translateY(0);
+                transform: translateY(0); 
                 border-radius: 20px 20px 0 0;
                 box-shadow: 0 -5px 15px rgba(0,0,0,0.15);
             }
             
-            /* เลื่อนลงไปกองด้านล่างสุด แต่เหลือขอบบนไว้ 15px ให้รู้ว่ามีลิ้นชักอยู่ */
-            .sidebar-hidden { transform: translateY(calc(100% - 15px)); margin-bottom: 0; }
+            /* เวลาซ่อน ให้สไลด์ลงไปล่างสุด (100%) */
+            #story-panel.sidebar-hidden { transform: translateY(100%); margin-bottom: 0; }
 
-            /* ปุ่มดึงลิ้นชัก เกาะติดอยู่ขอบบนของแผ่นข้อมูลเสมอ */
+            /* ปุ่มดึงลิ้นชัก */
             .toggle-sidebar-btn { 
                 left: 50%; 
-                top: -30px;
+                top: -35px;
                 transform: translateX(-50%); 
-                width: 80px; 
-                height: 30px; 
-                border-radius: 15px 15px 0 0; 
+                width: 90px; 
+                height: 35px; 
+                border-radius: 20px 20px 0 0; 
                 background: white; 
-                border: none; 
+                border: 2px solid #ddd;
+                border-bottom: none; 
                 box-shadow: 0 -4px 10px rgba(0,0,0,0.1); 
                 color: var(--wellness); 
-                font-size: 20px; 
+                font-size: 22px; 
+                transition: top 0.4s ease, border-radius 0.4s ease, height 0.4s ease, border-bottom 0.4s ease;
             }
-            .sidebar-hidden .toggle-sidebar-btn { left: 50%; top: -30px; } 
             
-            /* หมุนลูกศรชี้ขึ้น/ลง */
+            /* เวลากล่องซ่อน ให้ปุ่มดีดลอยขึ้นมาพ้นแถบ URL */
+            #story-panel.sidebar-hidden .toggle-sidebar-btn { 
+                top: -90px; /* ลอยขึ้นมา 90px เหนือขอบล่าง */
+                height: 40px;
+                border-radius: 25px; /* เปลี่ยนเป็นทรงแคปซูล */
+                border-bottom: 2px solid #ddd; 
+                box-shadow: 0 4px 15px rgba(0,0,0,0.25);
+            } 
+            
+            /* หมุนลูกศร */
             .toggle-icon { transform: rotate(90deg); transition: transform 0.4s ease; } 
-            .sidebar-hidden .toggle-icon { transform: rotate(-90deg); }
+            #story-panel.sidebar-hidden .toggle-icon { transform: rotate(-90deg); }
+
+            /* ย้ายปุ่มแผนที่หลบไปซ้ายบน (ใต้ปุ่ม Zoom) */
+            .map-controls-left { top: 90px; bottom: auto; left: 10px; }
+            .map-btn { width: 40px; height: 40px; font-size: 18px; background: rgba(255,255,255,0.9); }
             
             .card img { height: 110px; }
             .dialog-overlay { width: 85%; padding: 15px; }
@@ -202,7 +218,7 @@
 
     <aside id="story-panel">
         <div class="toggle-sidebar-btn" onclick="toggleSidebar()">
-            <i id="toggle-icon" class="fa-solid fa-chevron-left toggle-icon"></i>
+            <i id="toggle-icon" class="fa-solid fa-chevron-right toggle-icon"></i>
         </div>
 
         <div class="panel-content">
@@ -377,8 +393,8 @@
         }
     };
 
-    // แผนที่
-    const map = L.map('map').setView([12.5288, 102.0945], 16);
+    // สร้างแผนที่ (เปิดปุ่ม Zoom ให้กลับไปอยู่ซ้ายบนตามปกติ)
+    const map = L.map('map', { zoomControl: true }).setView([12.5288, 102.0945], 16);
     
     const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
     const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}');
@@ -398,23 +414,10 @@
 
     let userLoc = L.marker([12.5288, 102.0945], { icon: userIcon, draggable: true, zIndexOffset: 1000 }).addTo(map);
 
-    // ==========================================
-    // ฟังก์ชันซ่อน/แสดง Sidebar (เป็นลิ้นชักด้านล่าง ไม่หายวับ)
-    // ==========================================
     function toggleSidebar() {
         const panel = document.getElementById('story-panel');
-        const icon = document.getElementById('toggle-icon');
-        
         panel.classList.toggle('sidebar-hidden');
-        
-        if (panel.classList.contains('sidebar-hidden')) {
-            icon.classList.remove('fa-chevron-right');
-            icon.classList.add('fa-chevron-left');
-        } else {
-            icon.classList.remove('fa-chevron-left');
-            icon.classList.add('fa-chevron-right');
-        }
-        setTimeout(() => { map.invalidateSize(); }, 300);
+        setTimeout(() => { map.invalidateSize(); }, 400);
     }
 
     function toggleMapLayer() {
@@ -483,7 +486,7 @@
         let d2 = getMinDist(pos, arr2);
         let threshold = 50; 
 
-        // ระบบเด้งเตือนเมื่อใกล้ทางแยกจุดชมวิว
+        // ระบบแจ้งเตือนใกล้จุดชมวิว
         const junctionPoints = [
             {lat: 12.52999, lng: 102.09479, name: "สถานี 1"},
             {lat: 12.52973, lng: 102.09461, name: "สถานี 2"},
@@ -505,6 +508,7 @@
             return; 
         }
 
+        // ระบบสลับเส้นทางหลัก-รอง
         if (currentSubRoute === 'all') {
             if (d1 <= threshold && d2 > threshold) {
                 currentSubRoute = name1;
@@ -603,6 +607,7 @@
     function createCardHTML(s, badgeClass, routeName, weight, isViewpoint) {
         const w = parseFloat(weight) || 0;
         const factor = isViewpoint ? 0.05 : 0.1;
+        // สูตรการคำนวณแคลอรี่
         const kcal = (3.5 * w * factor).toFixed(1); 
         
         const icon = routeName.includes('มู') ? 'fa-hands-praying' : (isViewpoint ? 'fa-camera' : 'fa-person-walking');
